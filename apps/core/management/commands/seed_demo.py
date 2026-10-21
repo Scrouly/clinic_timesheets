@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.accounts.models import Role, User
+from apps.accounts.models import AccessLevel, DepartmentAccess, Role, User
 from apps.core.models import Department
 
 DEPARTMENTS = (
@@ -55,7 +55,10 @@ class Command(BaseCommand):
             if created:
                 user.set_password(options["password"])
                 user.save()
-            user.departments.set([departments[i] for i in dept_indexes])
+            for index in dept_indexes:
+                DepartmentAccess.objects.update_or_create(
+                    user=user, department=departments[index], defaults={"level": AccessLevel.EDIT}
+                )
             self.stdout.write(f"{'создан ' if created else 'уже есть'} {username} ({role})")
 
         self.stdout.write(self.style.SUCCESS(f"Готово. Пароль новых пользователей: {options['password']}"))

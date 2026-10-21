@@ -35,4 +35,4 @@ class DepartmentScopedMixin:
         user = self.request.user
         if user.sees_all_departments:
             return queryset
-        return queryset.filter(**{f"{self.department_field}__in": user.departments.all()})
+        return queryset.filter(**{f"{self.department_field}__in": user.visible_departments()})

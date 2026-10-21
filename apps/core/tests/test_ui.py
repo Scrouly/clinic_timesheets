@@ -1,11 +1,13 @@
+from django.core.management import call_command
 from django.template import Context, Template
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
-from apps.accounts.models import Role, User
+from apps.accounts.models import AccessLevel, DepartmentAccess, Role, User
 from apps.core.demo import build_demo_grid
+from apps.core.models import Department
 
-from .test_access import PASSWORD
+from .test_access import PASSWORD, make_user
 
 
 class TemplateTagTests(SimpleTestCase):
@@ -73,3 +75,21 @@ class DemoGridTests(TestCase):
         self.assertContains(response, "Ноябрь 2026")
         self.assertContains(response, "cell--error")
         self.assertEqual(self.client.get(reverse("demo_grid"), {"year": "abc", "month": "13"}).status_code, 200)
+
+
+class DepartmentAccessUiTests(TestCase):
+    def test_topbar_lists_user_departments(self):
+        surgery = Department.objects.create(name="Хирургическое отделение")
+        make_user("head", Role.HEAD, surgery)
+        self.client.login(username="head", password=PASSWORD)
+        response = self.client.get(reverse("password_change"))
+        self.assertContains(response, "usermenu__meta")
+        self.assertContains(response, "Хирургическое отделение")
+
+    def test_seed_demo_gives_edit_access(self):
+        call_command("seed_demo", force=True)
+        head = User.objects.get(username="head_cons")
+        self.assertEqual(head.editable_departments().count(), 2)
+        self.assertEqual(
+            set(head.department_accesses.values_list("level", flat=True)), {AccessLevel.EDIT}
+        )
