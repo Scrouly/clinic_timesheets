@@ -1,6 +1,4 @@
-import importlib
-
-from django.apps import apps as django_apps
+from django.core.exceptions import FieldDoesNotExist
 from django.test import TestCase
 
 from apps.accounts.models import AccessLevel, DepartmentAccess, Role, User
@@ -53,16 +51,6 @@ class AccessLevelTests(TestCase):
     def grant(self, user, department, level):
         DepartmentAccess.objects.create(user=user, department=department, level=level)
 
-    def test_copy_departments_creates_edit_rows(self):
-        migration = importlib.import_module("apps.accounts.migrations.0003_copy_departments_to_access")
-        user = User.objects.create_user("old", role=Role.HEAD)
-        user.departments.add(self.a, self.b)
-        migration.copy_departments(django_apps, None)
-        levels = set(
-            DepartmentAccess.objects.filter(user=user).values_list("department_id", "level")
-        )
-        self.assertEqual(levels, {(self.a.pk, AccessLevel.EDIT), (self.b.pk, AccessLevel.EDIT)})
-
     def test_levels_are_independent_per_department(self):
         user = User.objects.create_user("u", role=Role.HEAD)
         self.grant(user, self.a, AccessLevel.VIEW)
@@ -85,3 +73,13 @@ class AccessLevelTests(TestCase):
         for role in (Role.HR, Role.ADMIN):
             user = User.objects.create_user(f"u-{role}", role=role)
             self.assertEqual(list(user.editable_departments()), [self.a])
+
+
+class RemovedDepartmentsFieldTests(TestCase):
+    def test_user_has_no_departments_field(self):
+        with self.assertRaises(FieldDoesNotExist):
+            User._meta.get_field("departments")
+
+    def test_head_role_label(self):
+        self.assertEqual(Role.HEAD.label, "По отделениям")
+        self.assertEqual(Role.HEAD.value, "head")

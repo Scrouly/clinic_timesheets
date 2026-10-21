@@ -7,7 +7,7 @@ from django.db import models
 class Role(models.TextChoices):
     ADMIN = "admin", "Администратор"
     HR = "hr", "Кадровик"
-    HEAD = "head", "Заведующий"
+    HEAD = "head", "По отделениям"
     VIEWER = "viewer", "Наблюдатель"
 
 
@@ -16,13 +16,6 @@ class User(AbstractUser):
 
     patronymic = models.CharField("Отчество", max_length=150, blank=True)
     role = models.CharField("Роль", max_length=10, choices=Role.choices, default=Role.VIEWER)
-    departments = models.ManyToManyField(
-        "core.Department",
-        blank=True,
-        related_name="users",
-        verbose_name="Отделения",
-        help_text="Нужны заведующему: он видит и заполняет только эти отделения.",
-    )
 
     class Meta:
         verbose_name = "пользователь"

@@ -13,15 +13,15 @@ class DepartmentAccessInline(admin.TabularInline):
 class UserAdmin(DjangoUserAdmin):
     inlines = (DepartmentAccessInline,)
     list_display = ("username", "full_name_ru", "role", "is_active", "last_login")
-    list_filter = ("role", "is_active", "departments")
+    list_filter = ("role", "is_active")
     search_fields = ("username", "last_name", "first_name")
-    filter_horizontal = ("departments", "groups", "user_permissions")
+    filter_horizontal = ("groups", "user_permissions")
 
     fieldsets = DjangoUserAdmin.fieldsets + (
-        ("Доступ к графикам", {"fields": ("patronymic", "role", "departments")}),
+        ("Доступ к графикам", {"fields": ("patronymic", "role")}),
     )
     add_fieldsets = DjangoUserAdmin.add_fieldsets + (
-        ("Доступ к графикам", {"fields": ("last_name", "first_name", "patronymic", "role", "departments")}),
+        ("Доступ к графикам", {"fields": ("last_name", "first_name", "patronymic", "role")}),
     )
 
     @admin.display(description="ФИО")
