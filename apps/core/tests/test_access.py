@@ -2,7 +2,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.views.generic import ListView
 
-from apps.accounts.models import Role, User
+from apps.accounts.models import AccessLevel, DepartmentAccess, Role, User
 from apps.core.models import Department
 from apps.core.permissions import DepartmentScopedMixin
 
@@ -13,7 +13,8 @@ def make_user(username, role, *departments):
     user = User.objects.create_user(
         username, password=PASSWORD, role=role, last_name=username.title(), first_name="Тест"
     )
-    user.departments.set(departments)
+    for department in departments:
+        DepartmentAccess.objects.create(user=user, department=department, level=AccessLevel.EDIT)
     return user
 
 

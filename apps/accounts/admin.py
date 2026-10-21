@@ -1,11 +1,17 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from .models import User
+from .models import DepartmentAccess, User
+
+
+class DepartmentAccessInline(admin.TabularInline):
+    model = DepartmentAccess
+    extra = 1
 
 
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
+    inlines = (DepartmentAccessInline,)
     list_display = ("username", "full_name_ru", "role", "is_active", "last_login")
     list_filter = ("role", "is_active", "departments")
     search_fields = ("username", "last_name", "first_name")

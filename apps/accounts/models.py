@@ -1,4 +1,5 @@
 from django.apps import apps
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -59,4 +60,53 @@ class User(AbstractUser):
         queryset = Department.objects.filter(is_active=True)
         if self.sees_all_departments:
             return queryset
-        return queryset.filter(pk__in=self.departments.values("pk"))
+        return queryset.filter(pk__in=self.department_accesses.values("department_id"))
+
+    def editable_departments(self):
+        """Отделения, в которых пользователь может менять графики."""
+        Department = apps.get_model("core", "Department")
+        queryset = Department.objects.filter(is_active=True)
+        if self.has_role(Role.ADMIN, Role.HR):
+            return queryset
+        if self.has_role(Role.VIEWER):
+            return queryset.none()
+        return queryset.filter(
+            pk__in=self.department_accesses.filter(level=AccessLevel.EDIT).values("department_id")
+        )
+
+
+class AccessLevel(models.TextChoices):
+    VIEW = "view", "Просмотр"
+    EDIT = "edit", "Редактирование"
+
+
+class DepartmentAccess(models.Model):
+    """Доступ пользователя к графикам отделения: только просмотр или редактирование."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="department_accesses",
+        verbose_name="Пользователь",
+    )
+    department = models.ForeignKey(
+        "core.Department",
+        on_delete=models.CASCADE,
+        related_name="accesses",
+        verbose_name="Отделение",
+    )
+    level = models.CharField(
+        "Уровень доступа", max_length=4, choices=AccessLevel.choices, default=AccessLevel.VIEW
+    )
+
+    class Meta:
+        verbose_name = "доступ к отделению"
+        verbose_name_plural = "доступ к отделениям"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "department"), name="uniq_access_user_department"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.department} ({self.get_level_display()})"
