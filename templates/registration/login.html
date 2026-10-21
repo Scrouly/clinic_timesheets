@@ -1,0 +1,22 @@
+{% extends "base_auth.html" %}
+{% block title %}Вход — {{ APP_TITLE }}{% endblock %}
+{% block content %}
+  <h1 class="auth__heading">Вход в систему</h1>
+
+  <form class="auth__form" method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="msg msg--error" role="alert">
+        {% for error in form.non_field_errors %}<p class="msg__text">{{ error }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    {% include "partials/_field.html" with field=form.username %}
+    {% include "partials/_field.html" with field=form.password %}
+
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="btn btn--primary btn--block" type="submit">Войти</button>
+  </form>
+
+  <p class="auth__hint">Забыли пароль? Обратитесь к администратору системы.</p>
+{% endblock %}

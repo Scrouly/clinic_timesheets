@@ -1,0 +1,5 @@
+{# Пустое состояние: {% include "partials/_empty.html" with title="..." text="..." %} #}
+<div class="empty">
+  <p class="empty__title">{{ title }}</p>
+  {% if text %}<p class="empty__text">{{ text }}</p>{% endif %}
+</div>

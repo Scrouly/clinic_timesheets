@@ -1,0 +1,12 @@
+{% if messages %}
+  <div class="messages" aria-live="polite">
+    {% for message in messages %}
+      <div class="msg msg--{{ message.level_tag|default:'info' }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">
+        <p class="msg__text">{{ message }}</p>
+        <button class="msg__close" type="button" data-dismiss aria-label="Закрыть сообщение">
+          <svg class="icon icon--small" aria-hidden="true"><use href="#i-close"/></svg>
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

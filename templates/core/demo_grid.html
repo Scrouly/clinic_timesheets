@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block page_title_text %}Образец сетки{% endblock %}
+{% block page_title %}Образец сетки графика{% endblock %}
+{% block page_lead %}
+  <p class="page-lead">Выдуманные данные: так будет выглядеть график отделения. На нём можно проверить удобство до начала разработки.</p>
+{% endblock %}
+
+{% block page_actions %}
+  <div class="month-switch">
+    <a class="btn btn--icon" href="{{ prev_query }}" aria-label="Предыдущий месяц"><svg class="icon"><use href="#i-left"/></svg></a>
+    <span class="month-switch__title">{{ month_title }}</span>
+    <a class="btn btn--icon" href="{{ next_query }}" aria-label="Следующий месяц"><svg class="icon"><use href="#i-right"/></svg></a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="legend" aria-label="Обозначения">
+    <span class="legend__item"><i class="swatch swatch--shift"></i>Смена: время и кабинет</span>
+    <span class="legend__item"><i class="swatch swatch--vacation"></i>Отпуск</span>
+    <span class="legend__item"><i class="swatch swatch--error"></i>Накладка или ошибка</span>
+    <span class="legend__item"><i class="swatch swatch--changed"></i>Изменено после отправки</span>
+    <span class="legend__item"><i class="swatch swatch--weekend"></i>Выходной день</span>
+  </div>
+
+  <div class="grid-wrap" tabindex="0" role="region" aria-label="График за {{ month_title }}">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th class="grid__who" scope="col">Врач</th>
+          {% for day in days %}
+            <th scope="col" class="grid__day{% if day.is_weekend %} is-weekend{% endif %}">
+              <span class="grid__num">{{ day.number }}</span>
+              <span class="grid__wd">{{ day.weekday }}</span>
+            </th>
+          {% endfor %}
+          <th scope="col" class="grid__sum">Дней</th>
+          <th scope="col" class="grid__sum">Часов</th>
+          <th scope="col" class="grid__sum">Норма</th>
+          <th scope="col" class="grid__sum">Откл.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <th class="grid__who" scope="row">
+              <span class="grid__name">{{ row.name }}</span>
+              <span class="grid__pos">{{ row.position }}</span>
+            </th>
+            {% for cell in row.cells %}
+              <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.state %} cell--{{ cell.state }}{% endif %}"{% if cell.note %} title="{{ cell.note }}"{% endif %}>
+                {% if cell.kind == 'shift' %}
+                  <span class="cell__time">{{ cell.time }}</span>
+                  <span class="cell__cab">{{ cell.cabinet }}</span>
+                {% elif cell.kind == 'vacation' %}
+                  <span class="cell__time">{{ cell.text }}</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+            <td class="grid__sum">{{ row.worked_days }}</td>
+            <td class="grid__sum">{{ row.worked_hours|hours }}</td>
+            <td class="grid__sum">{{ row.norm|hours }}</td>
+            <td class="grid__sum{% if row.delta < 0 %} is-short{% elif row.delta > 0 %} is-over{% endif %}">{{ row.delta|hours }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Норма в образце задана условно, чтобы показать совпадение и расхождения. В рабочей системе её берут из производственного календаря по ставке и специальности.</p>
+{% endblock %}

@@ -1,0 +1,29 @@
+<header class="topbar">
+  <button class="topbar__menu btn btn--quiet" type="button" data-nav-toggle aria-controls="sidebar" aria-expanded="false">
+    <svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg>
+    <span class="sr-only">Открыть меню</span>
+  </button>
+
+  <p class="topbar__period">Сегодня {{ today|date:"j E Y" }}</p>
+
+  <details class="usermenu">
+    <summary class="usermenu__summary">
+      <span class="usermenu__name">{{ user.short_name_ru }}</span>
+      <span class="usermenu__role">{{ user.get_role_display }}</span>
+      <svg class="icon icon--small" aria-hidden="true"><use href="#i-chevron"/></svg>
+    </summary>
+    <div class="usermenu__panel">
+      <p class="usermenu__full">{{ user.full_name_ru }}</p>
+      {% if user.role == 'head' %}
+        <p class="usermenu__meta">
+          {% for department in user.departments.all %}{{ department.label }}{% if not forloop.last %}, {% endif %}{% empty %}Отделения не назначены{% endfor %}
+        </p>
+      {% endif %}
+      <a class="usermenu__item" href="{% url 'password_change' %}">Сменить пароль</a>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="usermenu__item usermenu__item--button" type="submit">Выйти</button>
+      </form>
+    </div>
+  </details>
+</header>

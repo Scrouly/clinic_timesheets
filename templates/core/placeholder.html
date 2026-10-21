@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block page_title_text %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_lead %}<p class="page-lead">{{ lead }}</p>{% endblock %}
+
+{% block content %}
+  <div class="panel form-narrow">
+    <p class="panel__title">Раздел в разработке</p>
+    <p>Здесь появится:</p>
+    <ul class="plain-list">
+      {% for item in planned %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endblock %}

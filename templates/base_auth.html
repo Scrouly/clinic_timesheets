@@ -1,0 +1,20 @@
+{% load static %}<!doctype html>
+<html lang="ru">
+<head>
+  {% include "partials/_head.html" %}
+  <title>{% block title %}{{ APP_TITLE }}{% endblock %}</title>
+</head>
+<body class="auth">
+  <main class="auth__box" id="main">
+    <div class="auth__brand">
+      <img src="{% static 'img/logo.svg' %}" alt="" width="40" height="40">
+      <div>
+        <p class="auth__title">{{ APP_TITLE }}</p>
+        {% if ORG_NAME %}<p class="auth__org">{{ ORG_NAME }}</p>{% endif %}
+      </div>
+    </div>
+    {% block content %}{% endblock %}
+  </main>
+  <script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

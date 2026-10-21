@@ -1,0 +1,23 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+
+from .models import User
+
+
+@admin.register(User)
+class UserAdmin(DjangoUserAdmin):
+    list_display = ("username", "full_name_ru", "role", "is_active", "last_login")
+    list_filter = ("role", "is_active", "departments")
+    search_fields = ("username", "last_name", "first_name")
+    filter_horizontal = ("departments", "groups", "user_permissions")
+
+    fieldsets = DjangoUserAdmin.fieldsets + (
+        ("Доступ к графикам", {"fields": ("patronymic", "role", "departments")}),
+    )
+    add_fieldsets = DjangoUserAdmin.add_fieldsets + (
+        ("Доступ к графикам", {"fields": ("last_name", "first_name", "patronymic", "role", "departments")}),
+    )
+
+    @admin.display(description="ФИО")
+    def full_name_ru(self, obj):
+        return obj.full_name_ru

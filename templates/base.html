@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="ru">
+<head>
+  {% include "partials/_head.html" %}
+  <title>{% block title %}{% block page_title_text %}{% endblock %} — {{ APP_TITLE }}{% endblock %}</title>
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="app {% block body_class %}{% endblock %}">
+  {% include "partials/_icons.html" %}
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+
+  <div class="shell">
+    {% include "partials/_sidebar.html" %}
+    <div class="shell__scrim" data-nav-scrim></div>
+
+    <div class="shell__main">
+      {% include "partials/_topbar.html" %}
+
+      <main class="page" id="main" tabindex="-1">
+        {% include "partials/_messages.html" %}
+
+        {% block breadcrumbs %}{% endblock %}
+
+        <div class="page-head">
+          <div class="page-head__text">
+            <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+            {% block page_lead %}{% endblock %}
+          </div>
+          <div class="page-actions">{% block page_actions %}{% endblock %}</div>
+        </div>
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

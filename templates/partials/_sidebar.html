@@ -1,0 +1,30 @@
+{% load static %}
+<aside class="sidebar" id="sidebar" aria-label="Разделы">
+  <a class="brand" href="{% url 'dashboard' %}">
+    <img class="brand__mark" src="{% static 'img/logo.svg' %}" alt="" width="30" height="30">
+    <span class="brand__text">
+      <span class="brand__title">{{ APP_TITLE }}</span>
+      {% if ORG_NAME %}<span class="brand__org">{{ ORG_NAME }}</span>{% endif %}
+    </span>
+  </a>
+
+  <nav class="nav">
+    {% for group in nav_groups %}
+      <div class="nav__group">
+        <p class="nav__title">{{ group.title }}</p>
+        <ul class="nav__list">
+          {% for item in group.items %}
+            <li>
+              <a class="nav__link{% if item.active %} is-active{% endif %}" href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>
+                <svg class="icon" aria-hidden="true"><use href="#i-{{ item.icon }}"/></svg>
+                <span>{{ item.label }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  </nav>
+
+  <p class="sidebar__foot">Версия {{ APP_VERSION }}</p>
+</aside>

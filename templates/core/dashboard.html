@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block page_title_text %}Главная{% endblock %}
+{% block page_title %}Главная{% endblock %}
+{% block page_lead %}
+  <p class="page-lead">
+    {% if user.role == 'head' %}Ваши отделения за {{ current_period|lower }}.
+    {% else %}Отделения клиники за {{ current_period|lower }}.{% endif %}
+  </p>
+{% endblock %}
+
+{% block content %}
+  {% if no_departments %}
+    {% include "partials/_empty.html" with title="Вам пока не назначено ни одного отделения" text="Попросите администратора системы указать ваши отделения в карточке пользователя." %}
+  {% elif departments %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Отделение</th>
+            <th scope="col">График за месяц</th>
+            <th scope="col" class="table__num">Врачей</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for department in departments %}
+            <tr class="is-draft">
+              <th scope="row">{{ department.name }}</th>
+              <td>{% status_badge "draft" "Не создан" %}</td>
+              <td class="table__num">—</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Статусы и число врачей появятся здесь, когда будет готов раздел «Графики».</p>
+  {% else %}
+    {% include "partials/_empty.html" with title="Отделения ещё не заведены" text="Добавьте отделения в разделе администрирования." %}
+  {% endif %}
+{% endblock %}
