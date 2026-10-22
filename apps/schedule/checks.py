@@ -9,7 +9,8 @@ from decimal import Decimal
 
 from django.db.models import Q
 
-from .models import Shift
+from .models import Assignment, Shift
+from .norms import norm_hours, planned_hours
 
 SHIFT_TOO_SHORT = "shift_too_short"
 SHIFT_TOO_LONG = "shift_too_long"
@@ -146,6 +147,37 @@ def check_cabinet_overlap(shifts):
     return issues
 
 
+def check_hours_norm(schedule):
+    """Часы за месяц совпадают с нормой. Проверяются Assignment, у которых есть записи в графике."""
+    assignments = (
+        Assignment.objects.filter(shifts__schedule=schedule)
+        .distinct()
+        .select_related("doctor", "specialty")
+    )
+    issues = []
+    for assignment in assignments:
+        norm = norm_hours(assignment, schedule.year, schedule.month)
+        if norm is None:
+            continue
+        planned = planned_hours(assignment, schedule.year, schedule.month)
+        if planned == norm:
+            continue
+        difference = norm - planned
+        verdict = (
+            f"не хватает {_hours(difference)} ч" if difference > 0 else f"лишних {_hours(-difference)} ч"
+        )
+        issues.append(
+            Issue(
+                HOURS_NORM,
+                f"{assignment.doctor.short_name}: запланировано {_hours(planned)} ч "
+                f"при норме {_hours(norm)} ч, {verdict}",
+                (),
+                assignment.id,
+            )
+        )
+    return issues
+
+
 def _month_shifts(schedule):
     return Shift.objects.filter(
         date__year=schedule.year, date__month=schedule.month
@@ -177,4 +209,6 @@ def check_schedule(schedule):
     issues += check_work_on_absence(own)
     issues += check_doctor_overlap(everything)
     issues += check_cabinet_overlap(everything)
-    return [issue for issue in issues if own_ids.intersection(issue.shift_ids)]
+    issues = [issue for issue in issues if own_ids.intersection(issue.shift_ids)]
+    issues += check_hours_norm(schedule)  # относится к Assignment, а не к смене
+    return issues
