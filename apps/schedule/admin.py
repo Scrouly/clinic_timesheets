@@ -5,11 +5,14 @@ from apps.core.admin_mixins import AdminHrOnlyMixin
 from .models import (
     Assignment,
     Cabinet,
+    CalendarDay,
     Doctor,
+    MonthNorm,
     Schedule,
     Shift,
     ShiftLengthRule,
     Specialty,
+    SpecialtyMonthNorm,
     TimeKind,
 )
 
@@ -64,3 +67,22 @@ class ShiftAdmin(AdminHrOnlyMixin, admin.ModelAdmin):
     list_display = ("date", "assignment", "kind", "start", "end", "cabinet", "schedule")
     list_filter = ("schedule__department", "kind", "cabinet")
     date_hierarchy = "date"
+
+
+@admin.register(CalendarDay)
+class CalendarDayAdmin(AdminHrOnlyMixin, admin.ModelAdmin):
+    list_display = ("date", "kind")
+    list_filter = ("kind",)
+    date_hierarchy = "date"
+
+
+@admin.register(MonthNorm)
+class MonthNormAdmin(AdminHrOnlyMixin, admin.ModelAdmin):
+    list_display = ("year", "month", "hours")
+    list_filter = ("year",)
+
+
+@admin.register(SpecialtyMonthNorm)
+class SpecialtyMonthNormAdmin(AdminHrOnlyMixin, admin.ModelAdmin):
+    list_display = ("specialty", "year", "month", "hours")
+    list_filter = ("specialty", "year")

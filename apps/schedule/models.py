@@ -300,3 +300,72 @@ class Shift(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class DayKind(models.TextChoices):
+    WORKDAY = "workday", "Рабочий"
+    WEEKEND = "weekend", "Выходной"
+    HOLIDAY = "holiday", "Праздничный"
+    SHORTENED = "shortened", "Сокращённый"
+
+
+class CalendarDay(models.Model):
+    """Отметка дня производственного календаря (для окраски выходных и праздников в сетке)."""
+
+    date = models.DateField("Дата", unique=True)
+    kind = models.CharField("Вид дня", max_length=10, choices=DayKind.choices)
+
+    class Meta:
+        verbose_name = "день календаря"
+        verbose_name_plural = "производственный календарь"
+        ordering = ("date",)
+
+    def __str__(self):
+        return f"{self.date:%d.%m.%Y} — {self.get_kind_display()}"
+
+
+class MonthNorm(models.Model):
+    """Норма часов за месяц на полную ставку (из официального календаря)."""
+
+    year = models.PositiveSmallIntegerField("Год")
+    month = models.PositiveSmallIntegerField(
+        "Месяц", validators=[MinValueValidator(1), MaxValueValidator(12)]
+    )
+    hours = models.DecimalField("Часов на полную ставку", max_digits=5, decimal_places=2)
+
+    class Meta:
+        verbose_name = "норма месяца"
+        verbose_name_plural = "нормы месяцев"
+        ordering = ("-year", "-month")
+        constraints = [
+            models.UniqueConstraint(fields=("year", "month"), name="uniq_month_norm_year_month"),
+        ]
+
+    def __str__(self):
+        return f"{self.month:02d}.{self.year}: {self.hours} ч"
+
+
+class SpecialtyMonthNorm(models.Model):
+    """Собственная норма профессии на месяц; главнее общей нормы месяца."""
+
+    specialty = models.ForeignKey(
+        Specialty, on_delete=models.CASCADE, related_name="month_norms", verbose_name="Профессия"
+    )
+    year = models.PositiveSmallIntegerField("Год")
+    month = models.PositiveSmallIntegerField(
+        "Месяц", validators=[MinValueValidator(1), MaxValueValidator(12)]
+    )
+    hours = models.DecimalField("Часов на полную ставку", max_digits=5, decimal_places=2)
+
+    class Meta:
+        verbose_name = "норма профессии на месяц"
+        verbose_name_plural = "нормы профессий на месяц"
+        ordering = ("-year", "-month", "specialty")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("specialty", "year", "month"), name="uniq_specialty_month_norm"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.specialty}, {self.month:02d}.{self.year}: {self.hours} ч"
