@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block page_title_text %}Удаление смены{% endblock %}
+{% block page_title %}Удаление смены{% endblock %}
+{% block content %}
+  <form class="panel form-narrow" method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <p>Удалить запись «{{ object.kind }}» {{ object.date|date:"d.m.Y" }} у {{ object.assignment.doctor.short_name }}{% if object.start %} ({{ object.start|time:"H:i" }}–{{ object.end|time:"H:i" }}){% endif %}?</p>
+    <div class="form-actions">
+      <button class="btn btn--danger" type="submit">Удалить</button>
+      <a class="btn" href="{% if next %}{{ next }}{% else %}{% url 'schedule_detail' object.schedule_id %}{% endif %}">Отмена</a>
+    </div>
+  </form>
+{% endblock %}

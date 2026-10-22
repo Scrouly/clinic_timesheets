@@ -36,5 +36,6 @@ urlpatterns = [
         ),
         name="password_change_done",
     ),
+    path("", include("apps.schedule.urls")),
     path("", include("apps.core.urls")),
 ]

@@ -3,7 +3,7 @@ from django.template import Context, Template
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
-from apps.accounts.models import AccessLevel, DepartmentAccess, Role, User
+from apps.accounts.models import AccessLevel, Role, User
 from apps.core.demo import build_demo_grid
 from apps.core.models import Department
 

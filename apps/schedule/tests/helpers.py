@@ -2,7 +2,9 @@
 from datetime import date, time
 from decimal import Decimal
 
+from apps.accounts.models import AccessLevel, DepartmentAccess, Role, User
 from apps.core.models import Department
+from apps.core.tests.test_access import PASSWORD
 from apps.schedule.models import (
     Assignment,
     Cabinet,
@@ -13,6 +15,18 @@ from apps.schedule.models import (
     Specialty,
     TimeKind,
 )
+
+
+def make_access_user(username, role=Role.HEAD, edit=(), view=()):
+    """Пользователь с правами на отделения: edit — редактирование, view — только просмотр."""
+    user = User.objects.create_user(
+        username, password=PASSWORD, role=role, last_name=username.title(), first_name="Тест"
+    )
+    for department in edit:
+        DepartmentAccess.objects.create(user=user, department=department, level=AccessLevel.EDIT)
+    for department in view:
+        DepartmentAccess.objects.create(user=user, department=department, level=AccessLevel.VIEW)
+    return user
 
 
 def t(text):
