@@ -381,3 +381,18 @@ a:hover { color: var(--brand); }
   .cell, .grid__day, .badge { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   a { color: inherit; text-decoration: none; }
 }
+
+
+/* Графики: смены в ячейках, ссылки правки, список ошибок */
+.cell--absence { background: var(--st-draft-bg); color: var(--ink-3); }
+.cell__item { display: block; }
+.cell__item + .cell__item { margin-top: 0.15rem; padding-top: 0.15rem; border-top: 1px dashed var(--line-strong); }
+.cell__link { display: block; color: inherit; text-decoration: none; }
+.cell__link:hover, .cell__link:focus-visible { background: rgba(0, 0, 0, 0.06); }
+.cell__add { display: block; color: var(--ink-3); font-size: 0.875rem; text-decoration: none; opacity: 0; }
+.cell:hover .cell__add, .cell__add:focus-visible { opacity: 1; }
+.issues { margin-top: 1rem; max-width: 70ch; }
+.issues__title { margin: 0 0 0.35rem; font-size: 1rem; font-weight: 600; color: var(--danger); }
+.issues__list { margin: 0; padding-left: 1.1rem; color: var(--ink-2); font-size: 0.875rem; }
+.grid-cabinet { border-left: 2px solid var(--line-strong); }
+.cabinet-head { text-align: center; }

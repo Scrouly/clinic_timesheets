@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block page_title_text %}Графики{% endblock %}
+{% block page_title %}Графики{% endblock %}
+{% block page_lead %}
+  <p class="page-lead">Графики отделений по месяцам. Откройте график, чтобы посмотреть или заполнить его.</p>
+{% endblock %}
+
+{% block content %}
+  {% if rows %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Отделение</th>
+            <th scope="col">Месяц</th>
+            <th scope="col">Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="is-{{ row.schedule.status }}">
+              <th scope="row"><a href="{% url 'schedule_detail' row.schedule.pk %}">{{ row.schedule.department.name }}</a></th>
+              <td>{{ row.title }}</td>
+              <td>{% status_badge row.schedule.status row.schedule.get_status_display %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% include "partials/_empty.html" with title="Графиков пока нет" text="Графики на месяц создаёт кадровик или администратор в разделе администрирования." %}
+  {% endif %}
+{% endblock %}

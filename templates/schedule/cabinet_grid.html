@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load ui_tags %}
+{% block page_title_text %}Кабинеты, {{ month_title }}{% endblock %}
+{% block page_title %}Кабинеты{% endblock %}
+{% block page_lead %}
+  <p class="page-lead">Общий график по кабинетам: те же смены, что в графиках отделений. Правка в одном виде сразу видна в другом.</p>
+{% endblock %}
+
+{% block page_actions %}
+  {% if can_edit %}<a class="btn" href="{% url 'shift_create' %}?next={{ request.get_full_path|urlencode }}">Добавить смену</a>{% endif %}
+  <div class="month-switch">
+    <a class="btn btn--icon" href="{{ prev_url }}" aria-label="Предыдущий месяц"><svg class="icon"><use href="#i-left"/></svg></a>
+    <span class="month-switch__title">{{ month_title }}</span>
+    <a class="btn btn--icon" href="{{ next_url }}" aria-label="Следующий месяц"><svg class="icon"><use href="#i-right"/></svg></a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="legend" aria-label="Обозначения">
+    <span class="legend__item"><i class="swatch swatch--shift"></i>Смена: время</span>
+    <span class="legend__item"><i class="swatch swatch--error"></i>Накладка или ошибка</span>
+    <span class="legend__item"><i class="swatch swatch--weekend"></i>Выходной или праздник</span>
+  </div>
+
+  {% if cabinets %}
+    <div class="grid-wrap" tabindex="0" role="region" aria-label="Кабинеты за {{ month_title }}">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th class="grid__who" scope="col" rowspan="2">День</th>
+            {% for entry in cabinets %}
+              <th scope="colgroup" class="cabinet-head grid-cabinet" colspan="{{ entry.doctors|length|add:1 }}">Кабинет {{ entry.cabinet.name }}</th>
+            {% endfor %}
+          </tr>
+          <tr>
+            {% for entry in cabinets %}
+              {% for doctor in entry.doctors %}
+                <th scope="col" class="grid__day{% if forloop.first %} grid-cabinet{% endif %}">
+                  <span class="grid__name">{{ doctor.doctor.short_name }}</span>
+                </th>
+              {% endfor %}
+              <th scope="col" class="grid__day{% if not entry.doctors %} grid-cabinet{% endif %}">Итого, ч</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in day_rows %}
+            <tr>
+              <th class="grid__who{% if row.day.is_weekend %} is-weekend{% endif %}" scope="row">
+                <span class="grid__name">{{ row.day.number }}</span>
+                <span class="grid__pos">{{ row.day.weekday }}</span>
+              </th>
+              {% for group in row.groups %}
+                {% for cell in group.cells %}
+                  <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.has_issue %} cell--error{% endif %}{% if forloop.first %} grid-cabinet{% endif %}">
+                    {% for item in cell.items %}
+                      <span class="cell__item">
+                        {% if item.editable %}<a class="cell__link" href="{% url 'shift_update' item.id %}?next={{ request.get_full_path|urlencode }}">{% endif %}
+                        <span class="cell__time">{{ item.label }}</span>
+                        {% if item.editable %}</a>{% endif %}
+                      </span>
+                    {% endfor %}
+                  </td>
+                {% endfor %}
+                <td class="cell cell--total{% if row.day.is_weekend %} is-weekend{% endif %}{% if not group.cells %} grid-cabinet{% endif %}">{{ group.total|hours }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th class="grid__who" scope="row">Итого</th>
+            {% for entry in cabinets %}
+              {% for doctor in entry.doctors %}
+                <td class="cell cell--total{% if forloop.first %} grid-cabinet{% endif %}">{{ doctor.total|hours }}</td>
+              {% endfor %}
+              <td class="cell cell--total{% if not entry.doctors %} grid-cabinet{% endif %}"><strong>{{ entry.total|hours }}</strong></td>
+            {% endfor %}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  {% else %}
+    {% include "partials/_empty.html" with title="В общий вид не включено ни одного кабинета" text="Кабинеты добавляются в общий вид в разделе администрирования: отметка «Показывать в общем графике кабинетов»." %}
+  {% endif %}
+{% endblock %}
