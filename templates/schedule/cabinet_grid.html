@@ -10,9 +10,9 @@
   {% if can_edit %}<a class="btn" data-panel-link href="{% url 'shift_create' %}?next={{ request.get_full_path|urlencode }}">Добавить смену</a>{% endif %}
   {% if cabinets %}<a class="btn" href="{{ toggle_url }}">{% if issues_only %}Показать все дни{% else %}Только дни с накладками{% endif %}</a>{% endif %}
   <div class="month-switch">
-    <a class="btn btn--icon" href="{{ prev_url }}" aria-label="Предыдущий месяц"><svg class="icon"><use href="#i-left"/></svg></a>
+    <a class="btn btn--icon" href="{{ prev_url }}" aria-label="Предыдущий месяц"><svg class="icon" aria-hidden="true"><use href="#i-left"/></svg></a>
     <span class="month-switch__title">{{ month_title }}</span>
-    <a class="btn btn--icon" href="{{ next_url }}" aria-label="Следующий месяц"><svg class="icon"><use href="#i-right"/></svg></a>
+    <a class="btn btn--icon" href="{{ next_url }}" aria-label="Следующий месяц"><svg class="icon" aria-hidden="true"><use href="#i-right"/></svg></a>
   </div>
 {% endblock %}
 
@@ -32,6 +32,7 @@
   {% if cabinets %}
     <div class="grid-wrap" tabindex="0" role="region" aria-label="Кабинеты за {{ month_title }}">
       <table class="grid grid--by-day">
+        <caption class="sr-only">Кабинеты за {{ month_title }}: дни по строкам, врачи по кабинетам в столбцах</caption>
         <thead>
           <tr>
             <th class="grid__who" scope="col" rowspan="2">День</th>

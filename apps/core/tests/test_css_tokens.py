@@ -142,3 +142,26 @@ class PaletteTests(SimpleTestCase):
         t = _tokens()
         actual = {k: v for k, v in t.items() if k.startswith("--st-")}
         self.assertEqual(actual, STATUS_TOKENS)
+
+
+class StatusAndLayoutRulesTests(SimpleTestCase):
+    def test_status_badges_are_readable(self):
+        t = _tokens()
+        names = sorted({k[5:-3] for k in t if k.startswith("--st-") and k.endswith("-bg")})
+        self.assertTrue(names)
+        for name in names:
+            ratio = contrast(t[f"--st-{name}-ink"], t[f"--st-{name}-bg"])
+            self.assertGreaterEqual(ratio, 4.5, f"статус {name}: {ratio:.2f}")
+
+    def test_reduced_motion_is_respected(self):
+        self.assertIn("prefers-reduced-motion: reduce", _css())
+
+    def test_phone_breakpoint_exists(self):
+        self.assertIn("@media (max-width: 40rem)", _css())
+
+    def test_print_hides_panel_and_add_links(self):
+        css = _css()
+        start = css.index("@media print")
+        printing = css[start:css.index("\n}\n", start)]
+        self.assertIn(".side-panel", printing)
+        self.assertIn(".cell__add", printing)

@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 from django.contrib import messages
@@ -11,6 +12,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from apps.core.context_processors import MONTHS_NOMINATIVE
+from apps.core.models import Department
 from apps.core.permissions import DepartmentScopedMixin
 
 from .forms import ShiftForm
@@ -27,15 +29,48 @@ class ScheduleListView(DepartmentScopedMixin, ListView):
     template_name = "schedule/schedule_list.html"
     department_field = "department"
 
+    PERIOD = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
+
+    def get_filters(self):
+        """Фильтры из адреса; неверные значения молча отбрасываются."""
+        department = self.request.GET.get("department", "")
+        period = self.request.GET.get("period", "")
+        return (
+            int(department) if department.isdigit() else None,
+            period if self.PERIOD.match(period) else "",
+        )
+
     def get_queryset(self):
-        return super().get_queryset().select_related("department")
+        queryset = super().get_queryset().select_related("department")
+        self.visible_queryset = queryset
+        department, period = self.get_filters()
+        if department is not None:
+            queryset = queryset.filter(department_id=department)
+        if period:
+            year, month = period.split("-")
+            queryset = queryset.filter(year=int(year), month=int(month))
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["rows"] = [
-            {"schedule": schedule, "title": period_title(schedule.year, schedule.month)}
-            for schedule in context["object_list"]
-        ]
+        department, period = self.get_filters()
+        visible = self.visible_queryset
+        periods = visible.order_by("-year", "-month").values_list("year", "month").distinct()
+        context.update(
+            rows=[
+                {"schedule": schedule, "title": period_title(schedule.year, schedule.month)}
+                for schedule in context["object_list"]
+            ],
+            filter_departments=list(
+                Department.objects.filter(pk__in=visible.values("department")).order_by("sort_order", "name")
+            ),
+            filter_periods=[
+                {"value": f"{year}-{month:02d}", "label": period_title(year, month)} for year, month in periods
+            ],
+            selected_department=department,
+            selected_period=period,
+            has_filters=department is not None or bool(period),
+        )
         return context
 
 

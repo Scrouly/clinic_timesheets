@@ -192,3 +192,24 @@ class ShiftPanelTests(ScheduleTestMixin, TestCase):
     def test_panel_form_posts_to_same_address(self):
         html = self.client.get(self.edit_url, **AJAX).content.decode()
         self.assertIn(f'action="{self.edit_url}"', html)
+
+
+class ShiftDeletePageTests(ScheduleTestMixin, TestCase):
+    def setUp(self):
+        self.setUpData()
+        self.assignment = self.make_assignment(doctor=self.make_doctor("Орлов"))
+        self.editor = make_access_user("editor", edit=[self.dept_a])
+        self.client.login(username=self.editor.username, password=PASSWORD)
+
+    def test_working_shift_text_names_time_date_and_doctor(self):
+        shift = self.make_shift(self.assignment, "8:00", "14:40")
+        response = self.client.get(reverse("shift_delete", args=[shift.pk]))
+        self.assertContains(response, "Удалить смену 08:00–14:40")
+        self.assertContains(response, "12 января 2026")
+        self.assertContains(response, "Орлов И.")
+        self.assertContains(response, "нельзя отменить")
+
+    def test_absence_text_names_kind(self):
+        shift = self.make_shift(self.assignment, None, None, kind=self.vacation)
+        response = self.client.get(reverse("shift_delete", args=[shift.pk]))
+        self.assertContains(response, "Удалить запись «Отпуск»")

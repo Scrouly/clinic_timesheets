@@ -357,7 +357,8 @@ a:hover { color: var(--brand-strong); }
 }
 /* накладка выделена рамкой и значком, а не только цветом */
 .cell--error { background: var(--st-error-bg); box-shadow: inset 0 0 0 2px var(--st-error-bar); }
-.cell__flag { position: absolute; top: 3px; left: 3px; width: 0.9rem; height: 0.9rem; color: var(--st-error-ink); }
+/* значок внизу слева: сверху у ячейки отделения время, снизу строка кабинета короче и оставляет угол свободным */
+.cell__flag { position: absolute; bottom: 3px; left: 3px; width: 0.9rem; height: 0.9rem; color: var(--st-error-ink); }
 
 /* итоги закреплены у правого края: видны при прокрутке по дням */
 .grid__sum {
@@ -411,7 +412,7 @@ a:hover { color: var(--brand-strong); }
 @media print {
   @page { size: A4 landscape; margin: 10mm; }
   body { background: var(--surface); font-size: 10pt; }
-  .sidebar, .topbar, .skip-link, .page-actions, .messages, .shell__scrim { display: none !important; }
+  .sidebar, .topbar, .skip-link, .page-actions, .messages, .shell__scrim, .side-panel, .cell__add, .grid-summary, .filters { display: none !important; }
   .shell { display: block; }
   .page { max-width: none; padding: 0; }
   .grid-wrap { max-height: none; overflow: visible; border: 0; }
@@ -419,6 +420,7 @@ a:hover { color: var(--brand-strong); }
   .grid thead th, .grid__who, .grid__sum { position: static; }
   .cell, .grid__day, .badge { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   a { color: inherit; text-decoration: none; }
+  .cell__flag, .cell--error { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 
 
@@ -449,3 +451,25 @@ a:hover { color: var(--brand-strong); }
 .side-panel__title { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
 .side-panel__loading { margin: 0; color: var(--ink-3); }
 .shift-form .field select { width: 100%; }
+
+/* Отбор списка графиков и текст подтверждения */
+.filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 1rem; margin-bottom: 1.25rem; }
+.filters__field { margin: 0; min-width: 13rem; }
+.filters__actions { display: flex; gap: 0.5rem; }
+.confirm-text { margin: 0 0 0.5rem; font-size: 1.0625rem; line-height: 1.5; }
+
+/* Телефон: сетка прокручивается внутри своей области, итоги не закреплены, панель на весь экран */
+@media (max-width: 40rem) {
+  .page-head { align-items: stretch; }
+  .page-actions { flex-wrap: wrap; }
+  .legend { gap: 0.3rem 0.9rem; }
+  .filters__field { min-width: 100%; }
+  .filters__actions { width: 100%; }
+  .grid-wrap { max-height: calc(100vh - 11rem); }
+  .grid__who { min-width: 8.5rem; max-width: 8.5rem; padding: 0.35rem 0.5rem; }
+  .grid__sum, .grid__sum:nth-last-child(n) { right: auto; }
+  .grid tbody .grid__sum { position: static; }
+  .side-panel { width: 100vw; border-left: 0; }
+  .side-panel__body { padding: 1rem 1rem 2rem; }
+  .auth__box { padding: 1.5rem 1.25rem; }
+}

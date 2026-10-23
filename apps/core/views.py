@@ -1,8 +1,11 @@
 from datetime import date
 
+from django.db.models import Count
+from django.utils import timezone
 from django.views.generic import TemplateView
 
 from apps.accounts.models import Role
+from apps.schedule.models import Assignment, Schedule
 
 from .context_processors import MONTHS_NOMINATIVE
 from .demo import build_demo_grid
@@ -16,8 +19,26 @@ class DashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        context["departments"] = user.visible_departments()
-        context["no_departments"] = user.has_role(Role.HEAD) and not context["departments"]
+        departments = list(user.visible_departments())
+        today = timezone.localdate()
+        schedules = {
+            schedule.department_id: schedule
+            for schedule in Schedule.objects.filter(
+                year=today.year, month=today.month, department__in=departments
+            )
+        }
+        doctors = dict(
+            Assignment.objects.filter(department__in=departments, is_active=True)
+            .values("department")
+            .annotate(total=Count("doctor", distinct=True))
+            .values_list("department", "total")
+        )
+        context["departments"] = departments
+        context["rows"] = [
+            {"department": d, "schedule": schedules.get(d.pk), "doctors": doctors.get(d.pk, 0)}
+            for d in departments
+        ]
+        context["no_departments"] = user.has_role(Role.HEAD) and not departments
         return context
 
 
