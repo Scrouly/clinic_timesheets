@@ -1,7 +1,12 @@
-{# Поле формы: {% include "partials/_field.html" with field=form.username %} #}
+{% comment %}
+  Поле формы. Подключение: include "partials/_field.html" with field=form.username.
+  Django сам ставит aria-describedby="<id>_helptext <id>_error", здесь заданы элементы с этими id.
+{% endcomment %}
 <div class="field{% if field.errors %} field--invalid{% endif %}">
   <label class="field__label" for="{{ field.id_for_label }}">{{ field.label }}</label>
   {{ field }}
-  {% if field.help_text %}<p class="field__help">{{ field.help_text|safe }}</p>{% endif %}
-  {% for error in field.errors %}<p class="field__error">{{ error }}</p>{% endfor %}
+  {% if field.help_text %}<div class="field__help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>{% endif %}
+  {% if field.errors %}
+    <div id="{{ field.auto_id }}_error">{% for error in field.errors %}<p class="field__error">{{ error }}</p>{% endfor %}</div>
+  {% endif %}
 </div>

@@ -12,9 +12,10 @@
 {% block content %}
   {% if no_departments %}
     {% include "partials/_empty.html" with title="Вам пока не назначено ни одного отделения" text="Попросите администратора системы указать ваши отделения в карточке пользователя." %}
-  {% elif departments %}
+  {% elif rows %}
     <div class="table-wrap">
       <table class="table">
+        <caption class="sr-only">Отделения: график за {{ current_period|lower }} и число врачей</caption>
         <thead>
           <tr>
             <th scope="col">Отделение</th>
@@ -23,17 +24,21 @@
           </tr>
         </thead>
         <tbody>
-          {% for department in departments %}
-            <tr class="is-draft">
-              <th scope="row">{{ department.name }}</th>
-              <td>{% status_badge "draft" "Не создан" %}</td>
-              <td class="table__num">—</td>
+          {% for row in rows %}
+            <tr class="is-{% if row.schedule %}{{ row.schedule.status }}{% else %}draft{% endif %}">
+              {% if row.schedule %}
+                <th scope="row"><a href="{% url 'schedule_detail' row.schedule.pk %}">{{ row.department.name }}</a></th>
+                <td>{% status_badge row.schedule.status row.schedule.get_status_display %}</td>
+              {% else %}
+                <th scope="row">{{ row.department.name }}</th>
+                <td>{% status_badge "draft" "Не создан" %}</td>
+              {% endif %}
+              <td class="table__num">{{ row.doctors }}</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <p class="note">Статусы и число врачей появятся здесь, когда будет готов раздел «Графики».</p>
   {% else %}
     {% include "partials/_empty.html" with title="Отделения ещё не заведены" text="Добавьте отделения в разделе администрирования." %}
   {% endif %}

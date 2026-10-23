@@ -7,11 +7,8 @@
 <body class="auth">
   <main class="auth__box" id="main">
     <div class="auth__brand">
-      <img src="{% static 'img/logo.svg' %}" alt="" width="40" height="40">
-      <div>
-        <p class="auth__title">{{ APP_TITLE }}</p>
-        {% if ORG_NAME %}<p class="auth__org">{{ ORG_NAME }}</p>{% endif %}
-      </div>
+      <img class="auth__logo" src="{% static 'img/brand/logo.svg' %}" alt="CityClinic" width="185" height="38">
+      <p class="auth__title">{{ APP_TITLE }}{% if ORG_NAME %}<span class="auth__org">{{ ORG_NAME }}</span>{% endif %}</p>
     </div>
     {% block content %}{% endblock %}
   </main>

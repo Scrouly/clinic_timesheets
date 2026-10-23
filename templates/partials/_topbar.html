@@ -1,9 +1,10 @@
-<header class="topbar">
+{% load static %}<header class="topbar">
   <button class="topbar__menu btn btn--quiet" type="button" data-nav-toggle aria-controls="sidebar" aria-expanded="false">
     <svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg>
     <span class="sr-only">Открыть меню</span>
   </button>
 
+  <img class="topbar__mark" src="{% static 'img/brand/logo-mark.svg' %}" alt="" width="28" height="28">
   <p class="topbar__period">Сегодня {{ today|date:"j E Y" }}</p>
 
   <details class="usermenu">

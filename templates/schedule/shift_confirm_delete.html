@@ -5,7 +5,11 @@
   <form class="panel form-narrow" method="post">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
-    <p>Удалить запись «{{ object.kind }}» {{ object.date|date:"d.m.Y" }} у {{ object.assignment.doctor.short_name }}{% if object.start %} ({{ object.start|time:"H:i" }}–{{ object.end|time:"H:i" }}){% endif %}?</p>
+    <p class="confirm-text">
+      Удалить {% if object.start %}смену {{ object.start|time:"H:i" }}–{{ object.end|time:"H:i" }}{% else %}запись «{{ object.kind.name }}»{% endif %},
+      {{ object.date|date:"j E Y" }}, у врача {{ object.assignment.doctor.short_name }}?
+    </p>
+    <p class="note">Это действие нельзя отменить.</p>
     <div class="form-actions">
       <button class="btn btn--danger" type="submit">Удалить</button>
       <a class="btn" href="{% if next %}{{ next }}{% else %}{% url 'schedule_detail' object.schedule_id %}{% endif %}">Отмена</a>
