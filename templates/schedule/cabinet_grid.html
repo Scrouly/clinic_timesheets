@@ -7,7 +7,8 @@
 {% endblock %}
 
 {% block page_actions %}
-  {% if can_edit %}<a class="btn" href="{% url 'shift_create' %}?next={{ request.get_full_path|urlencode }}">Добавить смену</a>{% endif %}
+  {% if can_edit %}<a class="btn" data-panel-link href="{% url 'shift_create' %}?next={{ request.get_full_path|urlencode }}">Добавить смену</a>{% endif %}
+  {% if cabinets %}<a class="btn" href="{{ toggle_url }}">{% if issues_only %}Показать все дни{% else %}Только дни с накладками{% endif %}</a>{% endif %}
   <div class="month-switch">
     <a class="btn btn--icon" href="{{ prev_url }}" aria-label="Предыдущий месяц"><svg class="icon"><use href="#i-left"/></svg></a>
     <span class="month-switch__title">{{ month_title }}</span>
@@ -20,11 +21,17 @@
     <span class="legend__item"><i class="swatch swatch--shift"></i>Смена: время</span>
     <span class="legend__item"><i class="swatch swatch--error"></i>Накладка или ошибка</span>
     <span class="legend__item"><i class="swatch swatch--weekend"></i>Выходной или праздник</span>
+    <span class="legend__item"><i class="swatch swatch--today"></i>Сегодня</span>
   </div>
+  {% if cabinets %}
+    <p class="grid-summary" role="status">
+      {% if issue_cells %}Накладок и ошибок в этом месяце: {{ issue_cells }}.{% else %}В этом месяце накладок нет.{% endif %}
+    </p>
+  {% endif %}
 
   {% if cabinets %}
     <div class="grid-wrap" tabindex="0" role="region" aria-label="Кабинеты за {{ month_title }}">
-      <table class="grid">
+      <table class="grid grid--by-day">
         <thead>
           <tr>
             <th class="grid__who" scope="col" rowspan="2">День</th>
@@ -45,17 +52,19 @@
         </thead>
         <tbody>
           {% for row in day_rows %}
-            <tr>
-              <th class="grid__who{% if row.day.is_weekend %} is-weekend{% endif %}" scope="row">
+            <tr{% if row.day.is_today %} class="is-today"{% endif %}>
+              <th class="grid__who{% if row.day.is_weekend %} is-weekend{% endif %}{% if row.day.is_holiday %} is-holiday{% endif %}" scope="row"{% if row.day.is_today %} aria-current="date"{% endif %}>
                 <span class="grid__name">{{ row.day.number }}</span>
                 <span class="grid__pos">{{ row.day.weekday }}</span>
+                {% if row.day.is_holiday %}<span class="sr-only">праздничный день</span>{% elif row.day.is_weekend %}<span class="sr-only">выходной</span>{% endif %}
               </th>
               {% for group in row.groups %}
                 {% for cell in group.cells %}
-                  <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.has_issue %} cell--error{% endif %}{% if forloop.first %} grid-cabinet{% endif %}">
+                  <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.holiday %} is-holiday{% endif %}{% if cell.has_issue %} cell--error{% endif %}{% if forloop.first %} grid-cabinet{% endif %}">
+                    {% if cell.has_issue %}<svg class="icon icon--small cell__flag" aria-hidden="true"><use href="#i-alert"/></svg><span class="sr-only">Накладка или ошибка</span>{% endif %}
                     {% for item in cell.items %}
                       <span class="cell__item">
-                        {% if item.editable %}<a class="cell__link" href="{% url 'shift_update' item.id %}?next={{ request.get_full_path|urlencode }}">{% endif %}
+                        {% if item.editable %}<a class="cell__link" data-panel-link href="{% url 'shift_update' item.id %}?next={{ request.get_full_path|urlencode }}">{% endif %}
                         <span class="cell__time">{{ item.label }}</span>
                         {% if item.editable %}</a>{% endif %}
                       </span>
@@ -80,6 +89,7 @@
         </tfoot>
       </table>
     </div>
+    {% if can_edit %}{% include "partials/_side_panel.html" %}{% endif %}
   {% else %}
     {% include "partials/_empty.html" with title="В общий вид не включено ни одного кабинета" text="Кабинеты добавляются в общий вид в разделе администрирования: отметка «Показывать в общем графике кабинетов»." %}
   {% endif %}

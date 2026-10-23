@@ -3,7 +3,7 @@ from datetime import date
 from django.contrib import messages
 from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -81,11 +81,14 @@ class CabinetGridView(CabinetAccessMixin, TemplateView):
             raise Http404("Нет такого месяца")
         prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
         next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
-        context.update(build_cabinet_grid(year, month, self.request.user))
+        issues_only = self.request.GET.get("issues") == "1"
+        suffix = "?issues=1" if issues_only else ""
+        context.update(build_cabinet_grid(year, month, self.request.user, issues_only=issues_only))
         context.update(
             month_title=period_title(year, month),
-            prev_url=reverse("cabinets_month", args=[prev_year, prev_month]),
-            next_url=reverse("cabinets_month", args=[next_year, next_month]),
+            prev_url=reverse("cabinets_month", args=[prev_year, prev_month]) + suffix,
+            next_url=reverse("cabinets_month", args=[next_year, next_month]) + suffix,
+            toggle_url=self.request.path + ("" if issues_only else "?issues=1"),
         )
         return context
 
@@ -100,9 +103,18 @@ def safe_next(request, default):
     return default
 
 
+def is_fetch(request):
+    """Запрос из боковой панели: тот же адрес, но ответ без каркаса страницы."""
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 class ShiftFormMixin:
     form_class = ShiftForm
     template_name = "schedule/shift_form.html"
+    panel_template_name = "schedule/_shift_form_body.html"
+
+    def get_template_names(self):
+        return [self.panel_template_name if is_fetch(self.request) else self.template_name]
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -112,10 +124,17 @@ class ShiftFormMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["next"] = self.request.POST.get("next") or self.request.GET.get("next", "")
+        context["panel"] = is_fetch(self.request)
         return context
 
     def get_success_url(self):
         return safe_next(self.request, reverse("schedule_detail", args=[self.object.schedule_id]))
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if is_fetch(self.request):
+            return JsonResponse({"ok": True, "next": response.url})
+        return response
 
 
 class ShiftObjectMixin:

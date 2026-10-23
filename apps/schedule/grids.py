@@ -9,6 +9,7 @@ from datetime import date, time
 from decimal import Decimal
 
 from django.db.models import Q
+from django.utils import timezone
 
 from .checks import HOURS_NORM, check_schedule
 from .models import Assignment, Cabinet, CalendarDay, DayKind, Shift
@@ -23,6 +24,7 @@ def month_days(year, month):
     marks = dict(
         CalendarDay.objects.filter(date__year=year, date__month=month).values_list("date", "kind")
     )
+    today = timezone.localdate()
     days = []
     for number in range(1, calendar.monthrange(year, month)[1] + 1):
         day = date(year, month, number)
@@ -35,6 +37,7 @@ def month_days(year, month):
                 "weekday": WEEKDAYS[day.weekday()],
                 "is_weekend": is_weekend,
                 "is_holiday": kind == DayKind.HOLIDAY,
+                "is_today": day == today,
             }
         )
     return days
@@ -64,6 +67,8 @@ def make_cell(day, shifts, editable_of, issue_shift_ids, empty_editable=False):
         "date": day["date"],
         "number": day["number"],
         "weekend": day["is_weekend"],
+        "holiday": day["is_holiday"],
+        "today": day["is_today"],
         "items": items,
         "kind": kind,
         "hours": sum((s.hours for s in shifts), ZERO),
@@ -131,11 +136,12 @@ def build_department_grid(schedule, user):
     return {"schedule": schedule, "days": days, "rows": rows, "can_edit": can_edit, "issues": issues}
 
 
-def build_cabinet_grid(year, month, user):
+def build_cabinet_grid(year, month, user, issues_only=False):
     """Общий вид по кабинетам: строки это дни, столбцы это кабинеты, внутри кабинета врачи.
 
     В вид входят кабинеты с флагом in_cabinet_schedule и все рабочие смены в них,
     из любого отделения. Редактировать можно только смены отделений с правом «редактирование».
+    При issues_only в строках остаются только дни, где есть накладка или ошибка.
     """
     cabinets = list(Cabinet.objects.filter(in_cabinet_schedule=True, is_active=True))
     editable_ids = set(user.editable_departments().values_list("pk", flat=True))
@@ -207,6 +213,13 @@ def build_cabinet_grid(year, month, user):
         }
         for index, day in enumerate(days)
     ]
+    issue_cells = sum(
+        1 for entry in entries for doctor in entry["doctors"] for cell in doctor["cells"] if cell["has_issue"]
+    )
+    if issues_only:
+        day_rows = [
+            row for row in day_rows if any(cell["has_issue"] for group in row["groups"] for cell in group["cells"])
+        ]
     return {
         "year": year,
         "month": month,
@@ -214,4 +227,6 @@ def build_cabinet_grid(year, month, user):
         "cabinets": entries,
         "day_rows": day_rows,
         "can_edit": bool(editable_ids),
+        "issue_cells": issue_cells,
+        "issues_only": issues_only,
     }

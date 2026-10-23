@@ -300,6 +300,8 @@ a:hover { color: var(--brand-strong); }
 .swatch--error { background: var(--st-error-bg); border: 2px solid var(--st-error-bar); }
 .swatch--changed { background: var(--st-changed-bg); }
 .swatch--weekend { background: var(--st-dayoff-bg); }
+.swatch--holiday { background: var(--st-holiday-bg); }
+.swatch--today { background: var(--surface); border: 2px solid var(--focus); }
 
 .grid-wrap {
   overflow: auto; max-height: calc(100vh - 16rem);
@@ -321,7 +323,28 @@ a:hover { color: var(--brand-strong); }
 .grid__day { min-width: 5.75rem; padding: 0.35rem 0; text-align: center; }
 .grid__num { display: block; line-height: 1.2; }
 .grid__wd { display: block; color: var(--ink-3); font-size: 0.8125rem; font-weight: 400; }
-.grid__day.is-weekend, .cell.is-weekend { background: var(--st-dayoff-bg); }
+.grid__day.is-weekend, .cell.is-weekend, .grid__who.is-weekend { background: var(--st-dayoff-bg); }
+.grid__day.is-holiday, .cell.is-holiday, .grid__who.is-holiday { background: var(--st-holiday-bg); }
+
+/* сегодняшний день: число в круге, столбец (в виде по кабинетам строка) обведён рамкой фокуса */
+.grid__day.is-today .grid__num, .grid__who.is-today .grid__name {
+  display: inline-block; min-width: 1.75rem; padding: 0 0.3rem;
+  border-radius: 999px; background: var(--ink); color: var(--on-fill); line-height: 1.5rem;
+}
+.grid__day.is-today { box-shadow: inset 0 -3px 0 var(--focus); }
+.cell.is-today::before, .grid--by-day tr.is-today > .cell::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+}
+.cell.is-today::before { border-left: 2px solid var(--focus); border-right: 2px solid var(--focus); }
+.grid--by-day .cell.is-today::before { border: 0; }
+.grid--by-day tr.is-today > .cell::before { border-top: 2px solid var(--focus); border-bottom: 2px solid var(--focus); }
+.grid--by-day tr.is-today > .grid__who { box-shadow: inset 3px 0 0 var(--focus); }
+
+/* вторая строка шапки (кабинеты: группа, затем врачи) закрепляется под первой */
+.grid thead tr:first-child th { height: 2.25rem; }
+.grid thead tr:nth-child(2) th { top: 2.25rem; }
+.grid tbody tr:hover > .grid__who { background: var(--tint); }
+.grid-summary { margin: 0 0 0.75rem; color: var(--ink-2); font-size: 0.9375rem; }
 
 .cell { position: relative; height: 3.1rem; min-width: 5.75rem; padding: 0.15rem 0.1rem; text-align: center; vertical-align: middle; }
 .cell__time { display: block; font-size: 0.8125rem; line-height: 1.25; font-variant-numeric: tabular-nums; }
@@ -332,8 +355,9 @@ a:hover { color: var(--brand-strong); }
   content: ""; position: absolute; top: 0; right: 0;
   border-style: solid; border-width: 0 0.6rem 0.6rem 0; border-color: transparent var(--st-changed-bar) transparent transparent;
 }
-/* накладка выделена рамкой, а не только цветом */
+/* накладка выделена рамкой и значком, а не только цветом */
 .cell--error { background: var(--st-error-bg); box-shadow: inset 0 0 0 2px var(--st-error-bar); }
+.cell__flag { position: absolute; top: 3px; left: 3px; width: 0.9rem; height: 0.9rem; color: var(--st-error-ink); }
 
 /* итоги закреплены у правого края: видны при прокрутке по дням */
 .grid__sum {
@@ -411,3 +435,17 @@ a:hover { color: var(--brand-strong); }
 .issues__list { margin: 0; padding-left: 1.1rem; color: var(--ink-2); font-size: 0.9375rem; }
 .grid-cabinet { border-left: 2px solid var(--line-strong); }
 .cabinet-head { text-align: center; }
+
+/* Боковая панель правки смены */
+.side-panel {
+  position: fixed; inset: 0 0 0 auto; margin: 0; width: min(28rem, 100vw); height: 100vh; max-height: none;
+  padding: 0; border: 0; border-left: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink); overflow-y: auto;
+  box-shadow: -8px 0 24px var(--shadow-pop);
+}
+.side-panel::backdrop { background: var(--scrim); }
+.side-panel__body { padding: 1.25rem 1.5rem 2rem; }
+.side-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.side-panel__title { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
+.side-panel__loading { margin: 0; color: var(--ink-3); }
+.shift-form .field select { width: 100%; }

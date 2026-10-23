@@ -1,0 +1,8 @@
+{% comment %}
+  Боковая панель правки смены. Подключается на страницах с сеткой, если у пользователя есть право
+  редактирования. Ссылки с атрибутом data-panel-link открываются в ней; без JavaScript они ведут
+  на обычную страницу формы.
+{% endcomment %}
+<dialog class="side-panel" data-panel aria-labelledby="panel-title">
+  <div class="side-panel__body" data-panel-body></div>
+</dialog>

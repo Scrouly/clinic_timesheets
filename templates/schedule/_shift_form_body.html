@@ -1,0 +1,37 @@
+{% comment %}
+  Форма смены. Используется и на отдельной странице (shift_form.html), и в боковой панели (panel=True).
+{% endcomment %}
+<form class="shift-form{% if not panel %} panel form-narrow{% endif %}" method="post"{% if panel %} action="{{ request.path }}"{% endif %} novalidate data-shift-form>
+  {% csrf_token %}
+  {% if panel %}
+    <header class="side-panel__head">
+      <h2 class="side-panel__title" id="panel-title">{{ title }}</h2>
+      <button class="btn btn--quiet btn--icon" type="button" data-panel-close>
+        <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
+        <span class="sr-only">Закрыть</span>
+      </button>
+    </header>
+  {% endif %}
+  <input type="hidden" name="next" value="{{ next }}">
+  {% for error in form.non_field_errors %}
+    <div class="msg msg--error" role="alert"><p class="msg__text">{{ error }}</p></div>
+  {% endfor %}
+  {% include "partials/_field.html" with field=form.assignment %}
+  {% include "partials/_field.html" with field=form.date %}
+  {% include "partials/_field.html" with field=form.kind %}
+  {% include "partials/_field.html" with field=form.start %}
+  {% include "partials/_field.html" with field=form.end %}
+  {% include "partials/_field.html" with field=form.cabinet %}
+  <p class="note">Для рабочего вида времени укажите начало, конец и кабинет. Для отпуска, больничного и командировки они не нужны.</p>
+  <div class="form-actions">
+    <button class="btn btn--primary" type="submit">Сохранить</button>
+    {% if panel %}
+      <button class="btn" type="button" data-panel-close>Отмена</button>
+    {% else %}
+      <a class="btn" href="{% if next %}{{ next }}{% else %}{% url 'schedules' %}{% endif %}">Отмена</a>
+    {% endif %}
+    {% if object.pk %}
+      <a class="btn btn--danger" href="{% url 'shift_delete' object.pk %}{% if next %}?next={{ next|urlencode }}{% endif %}">Удалить</a>
+    {% endif %}
+  </div>
+</form>
