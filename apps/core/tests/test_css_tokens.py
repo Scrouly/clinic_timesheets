@@ -117,9 +117,11 @@ class PaletteTests(SimpleTestCase):
         for fg in ("--danger", "--warn-ink"):
             self.assertContrast(fg, "--surface", 4.5)
 
-    def test_chrome_text_contrast(self):
-        for fg in ("--chrome-text", "--chrome-muted", "--on-fill"):
-            self.assertContrast(fg, "--chrome", 4.5)
+    def test_menu_text_contrast(self):
+        # светлое меню: обычный пункт, пункт при наведении и активный пункт
+        self.assertContrast("--ink-2", "--surface", 4.5)
+        self.assertContrast("--ink", "--tint", 4.5)
+        self.assertContrast("--brand-text", "--tint", 4.5)
 
     def test_ui_parts_contrast(self):
         self.assertContrast("--focus", "--surface", 3.0)

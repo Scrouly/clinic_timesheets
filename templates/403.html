@@ -1,7 +1,8 @@
 {% extends "base_auth.html" %}
 {% block title %}Нет доступа — {{ APP_TITLE }}{% endblock %}
 {% block content %}
+  <p class="auth__code">Ошибка 403</p>
   <h1 class="auth__heading">Нет доступа</h1>
-  <p>У вашей роли нет прав на эту страницу. Если она нужна для работы, обратитесь к администратору системы.</p>
+  <p>У вашей роли нет прав на эту страницу. Если она нужна для работы, попросите администратора выдать доступ.</p>
   <p><a class="btn btn--primary" href="{% url 'dashboard' %}">На главную</a></p>
 {% endblock %}

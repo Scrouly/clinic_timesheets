@@ -1,6 +1,11 @@
+from pathlib import Path
+
+from django import forms
+from django.conf import settings
 from django.core.management import call_command
 from django.template import Context, Template
-from django.test import SimpleTestCase, TestCase
+from django.template.loader import render_to_string
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
 
 from apps.accounts.models import AccessLevel, Role, User
@@ -93,3 +98,62 @@ class DepartmentAccessUiTests(TestCase):
         self.assertEqual(
             set(head.department_accesses.values_list("level", flat=True)), {AccessLevel.EDIT}
         )
+
+
+class BrandShellTests(TestCase):
+    def login(self):
+        User.objects.create_user("boss", password=PASSWORD, role=Role.ADMIN)
+        self.client.login(username="boss", password=PASSWORD)
+
+    def test_shell_shows_brand_logo(self):
+        self.login()
+        html = self.client.get(reverse("dashboard")).content.decode()
+        self.assertIn("img/brand/logo.svg", html)
+        self.assertIn('alt="CityClinic"', html)
+
+    def test_sidebar_marks_active_page(self):
+        self.login()
+        self.assertContains(self.client.get(reverse("dashboard")), 'aria-current="page"')
+
+    def test_no_reference_to_old_logo(self):
+        base = Path(settings.BASE_DIR)
+        self.assertFalse((base / "static" / "img" / "logo.svg").exists())
+        for template in (base / "templates").rglob("*.html"):
+            self.assertNotIn("img/logo.svg", template.read_text(encoding="utf-8"), template.name)
+
+    def test_login_page_shows_logo(self):
+        html = self.client.get(reverse("login")).content.decode()
+        self.assertIn("img/brand/logo.svg", html)
+
+    def test_error_pages_render_with_logo_and_way_home(self):
+        request = RequestFactory().get("/")
+        for name in ("403.html", "404.html"):
+            html = render_to_string(name, request=request)
+            self.assertIn("img/brand/logo.svg", html, name)
+            self.assertIn(reverse("dashboard"), html, name)
+
+    def test_unknown_url_gives_404_page(self):
+        response = self.client.get("/net-takoj-stranicy/")
+        self.assertContains(response, "Страница не найдена", status_code=404)
+
+
+class FieldAccessibilityTests(SimpleTestCase):
+    class SampleForm(forms.Form):
+        name = forms.CharField(label="Имя", help_text="Как в паспорте")
+
+    def render(self, data):
+        form = self.SampleForm(data)
+        return render_to_string("partials/_field.html", {"field": form["name"]})
+
+    def test_error_is_linked_to_input_and_has_text(self):
+        html = self.render({"name": ""})
+        self.assertIn('aria-invalid="true"', html)
+        self.assertRegex(html, r'aria-describedby="[^"]*id_name_error')
+        self.assertIn('id="id_name_error"', html)
+        self.assertIn("Обязательное поле", html)
+
+    def test_help_is_linked_to_input(self):
+        html = self.render({"name": "Иванов"})
+        self.assertRegex(html, r'aria-describedby="[^"]*id_name_helptext')
+        self.assertIn('id="id_name_helptext"', html)
+        self.assertNotIn("aria-invalid", html)
