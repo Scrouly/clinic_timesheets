@@ -7,6 +7,7 @@ from django.template import Context, Template
 from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 
 from apps.accounts.models import AccessLevel, Role, User
 from apps.core.demo import build_demo_grid
@@ -157,3 +158,45 @@ class FieldAccessibilityTests(SimpleTestCase):
         self.assertRegex(html, r'aria-describedby="[^"]*id_name_helptext')
         self.assertIn('id="id_name_helptext"', html)
         self.assertNotIn("aria-invalid", html)
+
+
+class NavigationHonestyTests(TestCase):
+    def test_unfinished_sections_are_marked_soon(self):
+        from apps.core.navigation import build_nav
+
+        user = User.objects.create_user("hr", password=PASSWORD, role=Role.HR)
+        items = {i["label"]: i for g in build_nav(user, "dashboard") for i in g["items"]}
+        for label in ("Сводная", "Отчёты", "Справочники"):
+            self.assertTrue(items[label]["soon"], label)
+        self.assertFalse(items["Графики"]["soon"])
+
+    def test_sidebar_shows_the_tag_for_each_unfinished_section(self):
+        User.objects.create_user("hr", password=PASSWORD, role=Role.HR)
+        self.client.login(username="hr", password=PASSWORD)
+        html = self.client.get(reverse("dashboard")).content.decode()
+        self.assertEqual(html.count('class="nav__soon"'), 3)
+        self.assertEqual(html.count("скоро"), 3)
+
+
+class CopyTests(SimpleTestCase):
+    def test_server_error_page_does_not_promise_a_notification(self):
+        html = render_to_string("500.html")
+        self.assertIn("сохранена в журнале сервера", html)
+        self.assertNotIn("у администратора", html)
+
+
+class HelpTextEscapingTests(SimpleTestCase):
+    class Form(forms.Form):
+        plain = forms.CharField(help_text="<b>жирный</b>")
+        trusted = forms.CharField(help_text=mark_safe("<ul><li>правило</li></ul>"))
+
+    def render(self, name):
+        return render_to_string("partials/_field.html", {"field": self.Form()[name]})
+
+    def test_plain_help_text_is_escaped(self):
+        html = self.render("plain")
+        self.assertIn("&lt;b&gt;жирный&lt;/b&gt;", html)
+        self.assertNotIn("<b>жирный</b>", html)
+
+    def test_marked_safe_help_text_keeps_markup(self):
+        self.assertIn("<ul><li>правило</li></ul>", self.render("trusted"))

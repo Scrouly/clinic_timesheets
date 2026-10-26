@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.db.models import Q
 
 from .models import Assignment, Shift
-from .norms import norm_hours, planned_hours
+from .norms import MonthNorms, planned_hours_by_assignment
 
 SHIFT_TOO_SHORT = "shift_too_short"
 SHIFT_TOO_LONG = "shift_too_long"
@@ -154,12 +154,15 @@ def check_hours_norm(schedule):
         .distinct()
         .select_related("doctor", "specialty")
     )
+    assignments = list(assignments)
+    norms = MonthNorms(schedule.year, schedule.month)
+    planned_by_id = planned_hours_by_assignment([a.id for a in assignments], schedule.year, schedule.month)
     issues = []
     for assignment in assignments:
-        norm = norm_hours(assignment, schedule.year, schedule.month)
+        norm = norms.hours(assignment)
         if norm is None:
             continue
-        planned = planned_hours(assignment, schedule.year, schedule.month)
+        planned = planned_by_id[assignment.id]
         if planned == norm:
             continue
         difference = norm - planned
@@ -181,7 +184,9 @@ def check_hours_norm(schedule):
 def _month_shifts(schedule):
     return Shift.objects.filter(
         date__year=schedule.year, date__month=schedule.month
-    ).select_related("assignment__doctor", "assignment__specialty", "kind", "cabinet")
+    ).select_related("assignment__doctor", "assignment__specialty", "kind", "cabinet").prefetch_related(
+        "assignment__specialty__length_rules"
+    )
 
 
 def check_schedule(schedule):

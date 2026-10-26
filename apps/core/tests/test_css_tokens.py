@@ -48,7 +48,9 @@ def _tokens():
 def _lum(hex_color):
     h = hex_color.lstrip("#")
     r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
-    f = lambda c: c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    def f(c):
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
     return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
 
 
@@ -165,3 +167,131 @@ class StatusAndLayoutRulesTests(SimpleTestCase):
         printing = css[start:css.index("\n}\n", start)]
         self.assertIn(".side-panel", printing)
         self.assertIn(".cell__add", printing)
+
+
+
+FIELD_SELECTOR = (
+    '.field input[type="text"], .field input[type="password"], .field input[type="email"],\n'
+    '.field input[type="number"], .field input[type="date"], .field input[type="time"],\n'
+    ".field select, .field textarea"
+)
+
+
+def _rules(css):
+    """Плоский список (селектор, тело) для правил без вложенности."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    return [(m.group(1).strip(), m.group(2)) for m in re.finditer(r"([^{}@][^{}]*)\{([^{}]*)\}", css)]
+
+
+def _strip_blocks(css, header):
+    """Убирает из css блоки вида `@media ... { ... }` с заданным заголовком (с вложенными скобками)."""
+    out, i = [], 0
+    while True:
+        start = css.find(header, i)
+        if start == -1:
+            out.append(css[i:])
+            break
+        out.append(css[i:start])
+        depth, j = 0, css.index("{", start)
+        while True:
+            depth += css[j] == "{"
+            depth -= css[j] == "}"
+            j += 1
+            if depth == 0:
+                break
+        i = j
+    return "".join(out)
+
+
+class AuditFixesTests(SimpleTestCase):
+    def rule(self, selector):
+        for sel, body in _rules(_css()):
+            if sel == selector:
+                return body
+        self.fail(f"нет правила {selector}")
+
+    def test_sticky_grids_reserve_scroll_padding(self):
+        self.assertIn("scroll-padding-inline-start", self.rule(".grid-wrap"))
+        self.assertIn("scroll-padding-block-start", self.rule(".grid-wrap"))
+        self.assertIn("scroll-padding-block-start", self.rule(".grid-wrap--by-day"))
+        self.assertIn("scroll-padding-inline-end", self.rule(".grid-wrap--sums"))
+
+    def test_field_focus_keeps_a_forced_colors_outline(self):
+        css = _css()
+        offenders = [sel for sel, body in _rules(css) if re.search(r"outline:\s*none", body)]
+        self.assertEqual(offenders, [".page:focus"])
+        focus = self.rule(".field input:focus, .field select:focus, .field textarea:focus")
+        self.assertIn("outline: 2px solid transparent", focus)
+
+    def test_field_border_is_visible(self):
+        t = _tokens()
+        for bg in ("--surface", "--paper"):
+            self.assertGreaterEqual(contrast(t["--field-border"], t[bg]), 3.0, bg)
+        body = self.rule(FIELD_SELECTOR)
+        self.assertIn("var(--field-border)", body)
+
+    def test_error_cell_cabinet_text_is_readable(self):
+        t = _tokens()
+        self.assertGreaterEqual(contrast(t["--st-error-ink"], t["--st-error-bg"]), 4.5)
+        self.assertIn("var(--st-error-ink)", self.rule(".cell--error .cell__cab"))
+
+    def test_fills_use_fill_tokens(self):
+        t = _tokens()
+        offenders = re.findall(r"background:[^;{}]*var\(--(?:brand-text|ink|ink-2|ink-3)\)", _css())
+        self.assertEqual(offenders, [])
+        for fill in ("--accent-solid", "--accent-solid-strong", "--surface-inverse"):
+            self.assertGreaterEqual(contrast(t["--on-fill"], t[fill]), 4.5, fill)
+
+    def test_focus_color_is_only_for_focus(self):
+        for selector, body in _rules(_css()):
+            if "var(--focus)" in body:
+                self.assertIn("focus", selector, selector)
+
+    def test_hover_only_inside_hover_media(self):
+        css = _strip_blocks(_css(), "@media (hover: hover)")
+        self.assertNotIn(":hover", css)
+
+    def test_touch_shows_add_control(self):
+        css = _css()
+        start = css.index("@media (hover: none)")
+        self.assertIn(".cell__add", css[start:css.index("\n}", start)])
+
+    def test_font_sizes_use_the_scale(self):
+        css = _css()
+        root = _root_block(css)
+        outside = css.replace(root, "")
+        self.assertEqual(re.findall(r"font-size:\s*[\d.]+(?:rem|px)", outside), [])
+        scale = set(re.findall(r"(--text-[\w]+):\s*[\d.]+rem", root))
+        self.assertLessEqual(len(scale), 7)
+        self.assertGreaterEqual(len(scale), 5)
+
+    def test_no_global_feature_tag_for_digits(self):
+        self.assertNotIn("font-feature-settings", _css())
+        self.assertIn("tabular-nums", self.rule(".table .table__num"))
+
+    def test_viewport_height_has_dynamic_fallback(self):
+        for selector, body in _rules(_css()):
+            if "100vh" in body:
+                self.assertIn("100dvh", body, selector)
+
+    def test_overlays_contain_scroll(self):
+        for selector in (".sidebar", ".side-panel"):
+            found = [body for sel, body in _rules(_css()) if sel == selector and "overflow" in body]
+            self.assertTrue(found and all("overscroll-behavior: contain" in body for body in found), selector)
+
+    def test_rings_are_not_inset_shadows(self):
+        self.assertNotIn("box-shadow: inset", _css())
+
+    def test_cell_link_has_a_real_hit_area(self):
+        self.assertIn("min-height: 2.5rem", self.rule(".cell__link"))
+
+    def test_nav_soon_tag_is_styled(self):
+        self.assertIn("color", self.rule(".nav__soon"))
+
+    def test_cell_secondary_text_is_readable_on_cell_backgrounds(self):
+        t = _tokens()
+        # фоны, которые реально бывают у ячеек сетки
+        for name in ("--st-dayoff-bg", "--st-holiday-bg", "--st-draft-bg", "--st-changed-bg", "--st-error-bg"):
+            self.assertGreaterEqual(contrast(t["--ink-2"], t[name]), 4.5, name)
+        for selector in (".cell__cab", ".cell__add"):
+            self.assertIn("var(--ink-2)", self.rule(selector))

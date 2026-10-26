@@ -1,8 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_not_required
-from django.urls import include, path
-from django.urls import reverse_lazy
+from django.urls import include, path, reverse_lazy
 
 admin.site.site_header = "Администрирование"
 admin.site.site_title = "Администрирование"

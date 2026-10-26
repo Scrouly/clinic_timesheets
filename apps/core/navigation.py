@@ -21,22 +21,23 @@ class NavItem:
     roles: tuple
     group: str
     icon: str  # id символа в partials/_icons.html
+    soon: bool = False  # раздел ещё не готов: в меню остаётся с пометкой «скоро»
 
 
 NAV_ITEMS = (
     NavItem("Главная", "dashboard", ALL_ROLES, "Работа", "home"),
     NavItem("Графики", "schedules", ALL_ROLES, "Работа", "calendar"),
-    NavItem("Сводная", "summary", OVERVIEW_ROLES, "Работа", "table"),
+    NavItem("Сводная", "summary", OVERVIEW_ROLES, "Работа", "table", soon=True),
     NavItem("Кабинеты", "cabinets", ALL_ROLES, "Анализ", "door"),
-    NavItem("Отчёты", "reports", OVERVIEW_ROLES, "Анализ", "chart"),
-    NavItem("Справочники", "reference", MANAGE_ROLES, "Настройка", "book"),
+    NavItem("Отчёты", "reports", OVERVIEW_ROLES, "Анализ", "chart", soon=True),
+    NavItem("Справочники", "reference", MANAGE_ROLES, "Настройка", "book", soon=True),
     NavItem("Пользователи", "admin:accounts_user_changelist", (Role.ADMIN,), "Настройка", "users"),
     NavItem("Образец сетки", "demo_grid", (Role.ADMIN,), "Настройка", "grid"),
 )
 
 
 def build_nav(user, current_url_name):
-    """Возвращает [{title, items: [{label, url, icon, active}]}] для роли пользователя."""
+    """Возвращает [{title, items: [{label, url, icon, active, soon}]}] для роли пользователя."""
     groups = {}
     for item in NAV_ITEMS:
         if not user.has_role(*item.roles):
@@ -47,6 +48,7 @@ def build_nav(user, current_url_name):
                 "url": reverse(item.url_name),
                 "icon": item.icon,
                 "active": item.url_name == current_url_name,
+                "soon": item.soon,
             }
         )
     return [{"title": title, "items": items} for title, items in groups.items()]

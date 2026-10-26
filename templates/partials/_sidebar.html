@@ -18,6 +18,7 @@
               <a class="nav__link{% if item.active %} is-active{% endif %}" href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>
                 <svg class="icon" aria-hidden="true"><use href="#i-{{ item.icon }}"/></svg>
                 <span>{{ item.label }}</span>
+                {% if item.soon %}<span class="nav__soon">скоро</span>{% endif %}
               </a>
             </li>
           {% endfor %}

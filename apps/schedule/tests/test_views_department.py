@@ -91,3 +91,50 @@ class DepartmentGridMarkupTests(ScheduleTestMixin, TestCase):
         html = self.get().content.decode()
         self.assertIn("data-panel-link", html)
         self.assertIn("data-panel", html)
+
+
+class DepartmentGridNavigationTests(ScheduleTestMixin, TestCase):
+    def setUp(self):
+        self.setUpData()
+        self.jan = Schedule.objects.create(department=self.dept_a, year=2026, month=1)
+        self.feb = Schedule.objects.create(department=self.dept_a, year=2026, month=2)
+        self.mar = Schedule.objects.create(department=self.dept_a, year=2026, month=3)
+        self.other = Schedule.objects.create(department=self.dept_b, year=2026, month=2)
+        self.assignment = self.make_assignment(doctor=self.make_doctor("Орлов"))
+        self.editor = make_access_user("editor", edit=[self.dept_a])
+        self.client.login(username=self.editor.username, password=PASSWORD)
+
+    def get(self, schedule):
+        return self.client.get(reverse("schedule_detail", args=[schedule.pk]))
+
+    def test_middle_month_links_both_ways(self):
+        response = self.get(self.feb)
+        self.assertEqual(response.context["prev_schedule"], self.jan)
+        self.assertEqual(response.context["next_schedule"], self.mar)
+        self.assertContains(response, reverse("schedule_detail", args=[self.jan.pk]))
+        self.assertContains(response, reverse("schedule_detail", args=[self.mar.pk]))
+        self.assertContains(response, 'aria-label="Предыдущий график: Январь 2026"')
+        self.assertContains(response, 'aria-label="Следующий график: Март 2026"')
+
+    def test_other_departments_are_not_used(self):
+        response = self.get(self.jan)
+        self.assertIsNone(response.context["prev_schedule"])
+        self.assertEqual(response.context["next_schedule"], self.feb)
+        self.assertNotContains(response, reverse("schedule_detail", args=[self.other.pk]))
+
+    def test_missing_neighbour_is_a_disabled_stub_with_text(self):
+        response = self.get(self.jan)
+        self.assertContains(response, "Нет предыдущего графика")
+        self.assertContains(response, 'aria-disabled="true"')
+
+    def test_add_shift_action_for_editor_only(self):
+        self.make_shift(self.assignment, "8:00", "14:00")
+        html = self.get(self.feb).content.decode()
+        self.assertRegex(html, r'data-panel-link href="[^"]*shifts/new/[^"]*"[^>]*>Добавить смену')
+        viewer = make_access_user("looker", view=[self.dept_a])
+        self.client.login(username=viewer.username, password=PASSWORD)
+        self.assertNotContains(self.get(self.feb), "Добавить смену")
+
+    def test_scroll_modifiers_on_wrapper(self):
+        self.make_shift(self.assignment, "8:00", "14:00")
+        self.assertContains(self.get(self.jan), "grid-wrap grid-wrap--sums")

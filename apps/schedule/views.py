@@ -4,6 +4,7 @@ from datetime import date
 from django.contrib import messages
 from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -87,6 +88,20 @@ class ScheduleDetailView(DepartmentScopedMixin, DetailView):
         schedule = self.object
         context.update(build_department_grid(schedule, self.request.user))
         context["month_title"] = period_title(schedule.year, schedule.month)
+        neighbours = Schedule.objects.filter(department=schedule.department)
+        context["prev_schedule"] = (
+            neighbours.filter(Q(year__lt=schedule.year) | Q(year=schedule.year, month__lt=schedule.month))
+            .order_by("-year", "-month")
+            .first()
+        )
+        context["next_schedule"] = (
+            neighbours.filter(Q(year__gt=schedule.year) | Q(year=schedule.year, month__gt=schedule.month))
+            .order_by("year", "month")
+            .first()
+        )
+        for key in ("prev_schedule", "next_schedule"):
+            if context[key]:
+                context[key].title = period_title(context[key].year, context[key].month)
         return context
 
 

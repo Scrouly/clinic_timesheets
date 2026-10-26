@@ -5,9 +5,9 @@ from django.template.loader import render_to_string
 from django.test import TestCase
 from django.urls import reverse
 
+from apps.core.tests.test_access import PASSWORD
 from apps.schedule.models import Schedule
 from apps.schedule.tests.helpers import ScheduleTestMixin, make_access_user
-from apps.core.tests.test_access import PASSWORD
 
 
 class Outline(HTMLParser):
@@ -127,4 +127,4 @@ class PageAccessibilityTests(ScheduleTestMixin, TestCase):
     def test_grid_scroll_regions_are_named_and_focusable(self):
         for name in ("schedule_detail", "cabinets"):
             html = self.client.get(self.pages()[name]).content.decode()
-            self.assertRegex(html, r'class="grid-wrap" tabindex="0" role="region" aria-label="[^"]+"', name)
+            self.assertRegex(html, r'class="grid-wrap[^"]*" tabindex="0" role="region" aria-label="[^"]+"', name)
