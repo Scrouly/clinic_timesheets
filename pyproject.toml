@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+# E, F: ошибки и неиспользуемое; I: порядок импортов; W: пробелы в конце строк
+select = ["E", "F", "I", "W"]

@@ -96,3 +96,20 @@ class CabinetGridFilterTests(ScheduleTestMixin, TestCase):
 
     def test_cells_open_in_side_panel(self):
         self.assertContains(self.client.get(self.url), "data-panel-link")
+
+
+class CabinetGridMarkupTests(ScheduleTestMixin, TestCase):
+    def setUp(self):
+        self.setUpData()
+        assignment = self.make_assignment(doctor=self.make_doctor("Орлов"))
+        self.make_shift(assignment, "8:00", "14:00", day=12)
+        user = make_access_user("head", edit=[self.dept_a])
+        self.client.login(username=user.username, password=PASSWORD)
+        self.url = reverse("cabinets_month", args=[2026, 1])
+
+    def test_scroll_modifier_on_wrapper(self):
+        self.assertContains(self.client.get(self.url), "grid-wrap grid-wrap--by-day")
+
+    def test_filter_labels_are_actions(self):
+        self.assertContains(self.client.get(self.url), "Показать только дни с накладками")
+        self.assertContains(self.client.get(self.url, {"issues": "1"}), "Показать все дни")

@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from .checks import HOURS_NORM, check_schedule
 from .models import Assignment, Cabinet, CalendarDay, DayKind, Shift
-from .norms import norm_hours
+from .norms import MonthNorms
 
 WEEKDAYS = ("пн", "вт", "ср", "чт", "пт", "сб", "вс")
 ZERO = Decimal("0.00")
@@ -105,6 +105,7 @@ def build_department_grid(schedule, user):
     )
 
     days = month_days(schedule.year, schedule.month)
+    norms = MonthNorms(schedule.year, schedule.month)
     rows = []
     for assignment in assignments:
         cells = [
@@ -118,7 +119,7 @@ def build_department_grid(schedule, user):
             for day in days
         ]
         planned = sum((cell["hours"] for cell in cells), ZERO)
-        norm = norm_hours(assignment, schedule.year, schedule.month)
+        norm = norms.hours(assignment)
         rows.append(
             {
                 "assignment": assignment,

@@ -1,4 +1,5 @@
-from datetime import date as date_type, datetime
+from datetime import date as date_type
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
@@ -50,7 +51,8 @@ class Specialty(models.Model):
 
     def rule_for_rate(self, rate):
         """Правило длины смены для ставки: rate_from <= ставка < rate_to (пустой rate_to — без верхней границы)."""
-        for rule in self.length_rules.order_by("rate_from"):
+        # сортировка в Python: так работает и prefetch_related("length_rules") без запроса на каждый вызов
+        for rule in sorted(self.length_rules.all(), key=lambda r: r.rate_from):
             if rule.rate_from <= rate and (rule.rate_to is None or rate < rule.rate_to):
                 return rule
         return None

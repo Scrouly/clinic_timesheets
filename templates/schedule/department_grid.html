@@ -11,6 +11,30 @@
 
 {% block page_actions %}
   <a class="btn" href="{% url 'schedules' %}">Все графики</a>
+  {% if can_edit %}<a class="btn" data-panel-link href="{% url 'shift_create' %}?next={{ request.get_full_path|urlencode }}">Добавить смену</a>{% endif %}
+  <div class="month-switch">
+    {% if prev_schedule %}
+      <a class="btn btn--icon" href="{% url 'schedule_detail' prev_schedule.pk %}" aria-label="Предыдущий график: {{ prev_schedule.title }}">
+        <svg class="icon" aria-hidden="true"><use href="#i-left"/></svg>
+      </a>
+    {% else %}
+      <span class="btn btn--icon btn--disabled" aria-disabled="true">
+        <svg class="icon" aria-hidden="true"><use href="#i-left"/></svg>
+        <span class="sr-only">Нет предыдущего графика</span>
+      </span>
+    {% endif %}
+    <span class="month-switch__title">{{ month_title }}</span>
+    {% if next_schedule %}
+      <a class="btn btn--icon" href="{% url 'schedule_detail' next_schedule.pk %}" aria-label="Следующий график: {{ next_schedule.title }}">
+        <svg class="icon" aria-hidden="true"><use href="#i-right"/></svg>
+      </a>
+    {% else %}
+      <span class="btn btn--icon btn--disabled" aria-disabled="true">
+        <svg class="icon" aria-hidden="true"><use href="#i-right"/></svg>
+        <span class="sr-only">Нет следующего графика</span>
+      </span>
+    {% endif %}
+  </div>
 {% endblock %}
 
 {% block content %}
@@ -24,7 +48,7 @@
   </div>
 
   {% if rows %}
-    <div class="grid-wrap" tabindex="0" role="region" aria-label="График за {{ month_title }}">
+    <div class="grid-wrap grid-wrap--sums" tabindex="0" role="region" aria-label="График за {{ month_title }}">
       <table class="grid">
         <caption class="sr-only">График за {{ month_title }}: врачи по строкам, дни месяца по столбцам</caption>
         <thead>
