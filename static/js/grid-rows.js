@@ -29,6 +29,11 @@
     try { id = sessionStorage.getItem(focusKey); sessionStorage.removeItem(focusKey); } catch (e) { return; }
     var row = id && document.getElementById(id);
     if (!row) return;
+    if (window.ClinicGrid && window.ClinicGrid.focusFirstCell && window.ClinicGrid.focusFirstCell(row)) {
+      row.classList.add("row--new");
+      window.setTimeout(function () { row.classList.remove("row--new"); }, 3000);
+      return;
+    }
     var target = row.querySelector(".cell__add, .cell__link") || row.querySelector("button");
     if (target) target.focus();
     row.classList.add("row--new");

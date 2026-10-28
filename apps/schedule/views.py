@@ -20,6 +20,11 @@ from .forms import ShiftForm
 from .grids import build_cabinet_grid, build_department_grid
 from .models import Schedule, Shift, Specialty
 
+MONTHS_GENITIVE = (
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+)
+
 
 def period_title(year, month):
     return f"{MONTHS_NOMINATIVE[month - 1]} {year}"
@@ -90,6 +95,7 @@ class ScheduleDetailView(DepartmentScopedMixin, DetailView):
         if context["can_edit"]:
             context["specialties"] = Specialty.objects.filter(is_active=True)  # для строки-заготовки «＋ врач»
         context["month_title"] = period_title(schedule.year, schedule.month)
+        context["month_genitive"] = MONTHS_GENITIVE[schedule.month - 1]  # для имён ячеек: «1 октября»
         neighbours = Schedule.objects.filter(department=schedule.department)
         context["prev_schedule"] = (
             neighbours.filter(Q(year__lt=schedule.year) | Q(year=schedule.year, month__lt=schedule.month))

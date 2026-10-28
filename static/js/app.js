@@ -70,7 +70,7 @@
         || panelBody.querySelector("input:not([type=hidden]), select, textarea");
       if (target) target.focus();
     };
-    var openPanel = function (url) {
+    var openPanel = window.ClinicGrid.openPanel = function (url) {
       panelBody.innerHTML = '<p class="side-panel__loading" role="status">Загрузка…</p>';
       if (!panel.open) panel.showModal();
       fetch(url, { headers: FETCH, credentials: "same-origin" })
