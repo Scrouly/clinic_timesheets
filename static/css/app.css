@@ -511,3 +511,60 @@ a { color: var(--brand-text); text-underline-offset: 0.15em; }
   .cell__add { opacity: 1; }
   .cell__item ~ .cell__add { display: none; }  /* под уже поставленной сменой лишний значок не нужен */
 }
+
+/* Состав строк графика: меню строки, «+» на границе строк, строка-заготовка с поиском врача */
+.grid-wrap[data-rows] .grid__who { padding-right: 2.4rem; }
+.row-menu__toggle { position: absolute; top: 0.3rem; right: 0.3rem; min-height: 0; padding: 0.25rem; color: var(--ink-3); }
+.row-add {
+  position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center;
+  height: 0.9rem; padding: 0; border: 0; background: var(--tint); color: var(--accent-solid);
+  cursor: pointer; opacity: 0;
+}
+.row-add--below { bottom: 0; border-top: 2px solid var(--accent-solid); }
+.row-add--above { top: 0; border-bottom: 2px solid var(--accent-solid); }
+.row-add:focus-visible { opacity: 1; }
+.row-add .icon { width: 0.8rem; height: 0.8rem; }
+.grid__add-row th, .grid__add-row td { background: var(--surface); }
+.row-add-bottom { width: 100%; justify-content: flex-start; padding-inline: 0.5rem; color: var(--accent-solid); white-space: nowrap; }
+.row--new { outline: 2px solid var(--brand); outline-offset: -2px; }
+.row--new > .grid__who { background: var(--tint); }
+
+.row-picker__cell { padding: 0; background: var(--tint); border-top: 2px solid var(--brand); border-bottom: 2px solid var(--brand); }
+.row-picker__form {
+  position: sticky; left: 0; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.5rem 1rem;
+  width: min(100%, 62rem); padding: 0.9rem 1rem;
+}
+.row-picker__field { margin: 0; min-width: 11rem; }
+.row-picker__field--doctor { flex: 1 1 20rem; }
+.row-picker__field--rate { min-width: 6rem; max-width: 7rem; }
+.row-picker__actions { display: flex; gap: 0.5rem; align-self: flex-end; }
+.row-picker__list {
+  max-height: 12rem; margin: 0.25rem 0 0; padding: 0.25rem; overflow-y: auto; overscroll-behavior: contain;
+  list-style: none; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius);
+}
+.row-picker__option { display: flex; justify-content: space-between; gap: 1rem; padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); cursor: pointer; }
+.row-picker__option[aria-selected="true"] { background: var(--tint); color: var(--brand-text); font-weight: 600; }
+.row-picker__meta { color: var(--ink-3); font-size: var(--text-md); white-space: nowrap; }
+.row-picker__status { flex-basis: 100%; min-height: 1.5em; margin: 0; color: var(--ink-2); font-size: var(--text-md); }
+.row-picker__hint { flex-basis: 100%; margin: 0; color: var(--ink-3); font-size: var(--text-md); }
+
+.row-menu {
+  position: fixed; inset: auto; margin: 0; min-width: 15rem; padding: 0.25rem;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+  box-shadow: 0 6px 18px var(--shadow-pop);
+}
+.row-menu__item {
+  display: block; width: 100%; padding: 0.55rem 0.75rem; border: 0; border-radius: var(--radius);
+  background: none; color: var(--ink); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+}
+.row-menu__item[hidden] { display: none; }
+.row-menu__item--danger { color: var(--danger); }
+@media (hover: hover) { .row-menu__item:hover { background: var(--tint); } }
+.row-menu__item:focus-visible { background: var(--tint); }
+@media (hover: hover) { .row-menu__toggle:hover { color: var(--accent-solid); } }
+@media (hover: none) { .row-add { display: none; } }
+@media (max-width: 40rem) {
+  .row-picker__field, .row-picker__field--doctor { flex-basis: 100%; }
+  .row-picker__form { position: static; }
+}
+@media print { .row-menu__toggle, .row-add, .grid__add-row, .row-picker { display: none !important; } }

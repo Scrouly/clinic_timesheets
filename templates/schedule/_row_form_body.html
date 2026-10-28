@@ -1,0 +1,40 @@
+{% comment %}
+  Форма строки графика (добавить врача, ставка и профессия, убрать из графика). Одна и та же и на странице,
+  и в боковой панели (panel=True). Отправляется через боковую панель по data-panel-form.
+{% endcomment %}
+{% load ui_tags %}
+<form class="row-form{% if not panel %} panel form-narrow{% endif %}" method="post"{% if panel %} action="{{ action }}"{% endif %} novalidate data-panel-form>
+  {% csrf_token %}
+  {% if panel %}
+    <header class="side-panel__head">
+      <h2 class="side-panel__title" id="panel-title">{{ title }}</h2>
+      <button class="btn btn--quiet btn--icon" type="button" data-panel-close>
+        <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
+        <span class="sr-only">Закрыть</span>
+      </button>
+    </header>
+  {% endif %}
+  {% for error in form.non_field_errors %}
+    <div class="msg msg--error" role="alert"><p class="msg__text">{{ error }}</p></div>
+  {% endfor %}
+  {% if danger %}
+    <p class="confirm-text">
+      Убрать {{ name }} из графика за {{ period }}?
+      {% if shift_count %}Вместе со строкой будут удалены смены за этот месяц: {{ shift_count }} {{ shift_count|ru_plural:"смена,смены,смен" }}.{% endif %}
+    </p>
+    <p class="note">Это действие нельзя отменить. Смены других месяцев не затрагиваются.</p>
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  {% else %}
+    {% for field in form.visible_fields %}{% include "partials/_field.html" with field=field %}{% endfor %}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+    {% if catalog_note %}<p class="note">Выбрать можно только сотрудника из справочника. Нет нужного человека: его заводит кадровик.</p>{% endif %}
+  {% endif %}
+  <div class="form-actions">
+    <button class="btn {% if danger %}btn--danger{% else %}btn--primary{% endif %}" type="submit">{{ submit }}</button>
+    {% if panel %}
+      <button class="btn" type="button" data-panel-close>Отмена</button>
+    {% else %}
+      <a class="btn" href="{% url 'schedule_detail' schedule.pk %}">Отмена</a>
+    {% endif %}
+  </div>
+</form>

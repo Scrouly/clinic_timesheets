@@ -15,7 +15,7 @@ class AdminHrOnlyMixin:
     def has_view_permission(self, request, obj=None):
         return self._allowed(request)
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, request, obj=None):  # obj передают вложенные таблицы (inline)
         return self._allowed(request)
 
     def has_change_permission(self, request, obj=None):

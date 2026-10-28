@@ -4,8 +4,8 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
-from django.db.models import F, Q
+from django.db import models, transaction
+from django.db.models import F, Max, Q
 
 
 class Cabinet(models.Model):
@@ -158,11 +158,14 @@ class Assignment(models.Model):
     def __str__(self):
         return f"{self.doctor.short_name}, {self.specialty}, {self.department.label} ({self.rate})"
 
-    def shift_limits(self):
-        """(минимум, максимум) длины смены: свои границы главнее правила профессии."""
+    def shift_limits(self, rate=None):
+        """(минимум, максимум) длины смены: свои границы главнее правила профессии.
+
+        rate: ставка месяца из строки графика; без неё берётся ставка по умолчанию у Assignment.
+        """
         if self.min_shift_hours is not None or self.max_shift_hours is not None:
             return (self.min_shift_hours, self.max_shift_hours)
-        rule = self.specialty.rule_for_rate(self.rate)
+        rule = self.specialty.rule_for_rate(self.rate if rate is None else rate)
         if rule is not None:
             return (rule.min_hours, rule.max_hours)
         return (None, None)
@@ -222,6 +225,50 @@ class Schedule(models.Model):
 
     def __str__(self):
         return f"{self.department} — {self.month:02d}.{self.year}"
+
+
+class ScheduleRow(models.Model):
+    """Строка графика: врач в отделении в конкретном месяце, со ставкой этого месяца.
+
+    Состав строк принадлежит месяцу: врач, добавленный в октябре, не появляется в других месяцах,
+    а изменённая ставка не меняет норму прошлых графиков.
+    """
+
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name="rows", verbose_name="График")
+    assignment = models.ForeignKey(
+        Assignment, on_delete=models.PROTECT, related_name="schedule_rows", verbose_name="Врач в отделении"
+    )
+    rate = models.DecimalField("Ставка в этом месяце", max_digits=3, decimal_places=2)
+    sort_order = models.PositiveIntegerField("Порядок в графике", default=0)
+
+    class Meta:
+        verbose_name = "строка графика"
+        verbose_name_plural = "строки графика"
+        ordering = ("schedule", "sort_order", "id")
+        constraints = [
+            models.UniqueConstraint(fields=("schedule", "assignment"), name="uniq_schedule_row_assignment"),
+        ]
+
+    def __str__(self):
+        return f"{self.schedule}: {self.assignment.doctor.short_name} ({self.rate})"
+
+    def clean(self):
+        if self.assignment_id and self.schedule_id:
+            if self.assignment.department_id != self.schedule.department_id:
+                raise ValidationError({"assignment": "Врач работает не в отделении этого графика."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def ensure(cls, schedule, assignment):
+        """Строка этого врача в графике; если её нет, создаётся в конце со ставкой по умолчанию."""
+        row = cls.objects.filter(schedule=schedule, assignment=assignment).first()
+        if row is not None:
+            return row
+        last = cls.objects.filter(schedule=schedule).aggregate(last=Max("sort_order"))["last"] or 0
+        return cls.objects.create(schedule=schedule, assignment=assignment, rate=assignment.rate, sort_order=last + 1)
 
 
 class Shift(models.Model):
@@ -301,7 +348,9 @@ class Shift(models.Model):
 
     def save(self, *args, **kwargs):
         self.full_clean()
-        super().save(*args, **kwargs)
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            ScheduleRow.ensure(self.schedule, self.assignment)  # смена всегда лежит в строке графика
 
 
 class DayKind(models.TextChoices):

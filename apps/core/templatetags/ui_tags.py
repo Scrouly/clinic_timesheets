@@ -26,3 +26,15 @@ def hours(value):
         return str(value)
     text = f"{number:f}".rstrip("0").rstrip(".")
     return text.replace(".", ",")
+
+
+@register.filter
+def ru_plural(number, forms):
+    """Склонение по числу: {{ n }} {{ n|ru_plural:"смена,смены,смен" }}."""
+    one, few, many = [part.strip() for part in forms.split(",")]
+    n = abs(int(number))
+    if n % 10 == 1 and n % 100 != 11:
+        return one
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return few
+    return many

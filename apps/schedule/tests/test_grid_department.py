@@ -35,15 +35,36 @@ class DepartmentGridTests(ScheduleTestMixin, TestCase):
         self.assertFalse(days[11]["is_weekend"])  # понедельник 12 января
         self.assertEqual(days[11]["weekday"], "пн")
 
-    def test_rows_are_assignments_of_department(self):
+    def test_rows_are_the_schedule_rows_in_their_order(self):
         first = self.make_assignment(doctor=self.make_doctor("Анохин"))
         second = self.make_assignment(doctor=self.make_doctor("Борисов"))
         self.make_assignment(doctor=self.make_doctor("Власов"), department=self.dept_b)
-        self.make_assignment(doctor=self.make_doctor("Громов"), is_active=False)  # без смен, скрыт
+        self.make_assignment(doctor=self.make_doctor("Громов"))  # есть в отделении, но не в этом графике
         busy_inactive = self.make_assignment(doctor=self.make_doctor("Дроздов"), is_active=False)
-        self.make_shift(busy_inactive, "9:00", "13:00")  # со сменами, показывается
+        self.make_row(second)
+        self.make_row(first)
+        self.make_shift(busy_inactive, "9:00", "13:00")  # смена сама добавляет строку
         rows = [row["assignment"] for row in self.grid()["rows"]]
-        self.assertEqual(rows, [first, second, busy_inactive])
+        self.assertEqual(rows, [second, first, busy_inactive])
+
+    def test_row_rate_is_shown_and_used_for_the_norm(self):
+        assignment = self.make_assignment(rate="1")
+        self.make_row(assignment, rate="0.5")
+        row = self.grid()["rows"][0]
+        self.assertIn("0,5 ст.", row["position"])
+        self.assertEqual(row["norm"], Decimal("4.00"))
+
+    def test_row_exposes_its_object_and_shift_count(self):
+        assignment = self.make_assignment()
+        self.make_shift(assignment, "8:00", "12:00", day=12)
+        self.make_shift(assignment, "8:00", "12:00", day=13)
+        row = self.grid()["rows"][0]
+        self.assertEqual(row["shift_count"], 2)
+        self.assertEqual(row["row"].assignment_id, assignment.pk)
+
+    def test_assignment_without_a_row_is_not_shown(self):
+        self.make_assignment()
+        self.assertEqual(self.grid()["rows"], [])
 
     def test_cell_text_for_working_and_absence(self):
         assignment = self.make_assignment()

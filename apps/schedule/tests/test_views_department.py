@@ -52,6 +52,8 @@ class DepartmentGridMarkupTests(ScheduleTestMixin, TestCase):
         self.schedule = Schedule.objects.create(department=self.dept_a, year=2026, month=1)
         self.first = self.make_assignment(doctor=self.make_doctor("Орлов"))
         self.second = self.make_assignment(doctor=self.make_doctor("Белов"))
+        self.make_row(self.first, self.schedule)
+        self.make_row(self.second, self.schedule)
         self.url = reverse("schedule_detail", args=[self.schedule.pk])
         self.client.login(username=make_access_user("head", edit=[self.dept_a]).username, password=PASSWORD)
 
@@ -138,3 +140,72 @@ class DepartmentGridNavigationTests(ScheduleTestMixin, TestCase):
     def test_scroll_modifiers_on_wrapper(self):
         self.make_shift(self.assignment, "8:00", "14:00")
         self.assertContains(self.get(self.jan), "grid-wrap grid-wrap--sums")
+
+
+class DepartmentGridRowControlsTests(ScheduleTestMixin, TestCase):
+    def setUp(self):
+        self.setUpData()
+        self.schedule = self.make_schedule()
+        self.first = self.make_row(self.make_assignment(doctor=self.make_doctor("Абрамов")), self.schedule)
+        self.second = self.make_row(self.make_assignment(doctor=self.make_doctor("Беляев")), self.schedule)
+        self.url = reverse("schedule_detail", args=[self.schedule.pk])
+        self.editor = make_access_user("editor", edit=[self.dept_a])
+        self.viewer = make_access_user("looker", view=[self.dept_a])
+
+    def get(self, user):
+        self.client.login(username=user.username, password=PASSWORD)
+        return self.client.get(self.url)
+
+    def test_editor_gets_menu_and_add_controls_for_every_row(self):
+        html = self.get(self.editor).content.decode()
+        self.assertEqual(html.count("data-row-menu"), 2)
+        # выше первой, ниже каждой строки и «＋ Добавить врача» внизу
+        self.assertEqual(html.count("data-row-add"), 4)
+        self.assertIn('data-position="0"', html)
+        self.assertIn('data-position="2"', html)
+
+    def test_row_ids_and_urls_are_in_the_markup(self):
+        html = self.get(self.editor).content.decode()
+        self.assertIn(f'id="row-{self.first.pk}"', html)
+        self.assertIn(reverse("row_edit", args=[self.schedule.pk, self.first.pk]), html)
+        self.assertIn(reverse("row_remove", args=[self.schedule.pk, self.first.pk]), html)
+        self.assertIn(reverse("row_move", args=[self.schedule.pk, self.first.pk]), html)
+
+    def test_shift_count_is_on_the_menu_button(self):
+        self.make_shift(self.first.assignment, "8:00", "12:00", day=12)
+        self.make_shift(self.first.assignment, "8:00", "12:00", day=13)
+        html = self.get(self.editor).content.decode()
+        self.assertIn('data-shifts="2"', html)
+        self.assertIn('data-shifts="0"', html)
+
+    def test_picker_template_and_endpoints_for_editor(self):
+        response = self.get(self.editor)
+        html = response.content.decode()
+        self.assertIn('id="row-picker-template"', html)
+        self.assertIn(reverse("schedule_doctors", args=[self.schedule.pk]), html)
+        self.assertIn(reverse("row_create", args=[self.schedule.pk]), html)
+        self.assertIn("data-csrf=", html)
+        self.assertIn("js/grid-rows.js", html)
+        self.assertIn(self.surgeon.name, html)  # профессии для выбора в строке-заготовке
+
+    def test_viewer_gets_none_of_it(self):
+        html = self.get(self.viewer).content.decode()
+        for marker in ("data-row-menu", "data-row-add", "row-picker-template", "grid-rows.js", "row_create"):
+            self.assertNotIn(marker, html)
+        self.assertNotIn("/rows/new/", html)
+
+    def test_empty_roster_offers_the_first_row_to_an_editor(self):
+        self.schedule.rows.all().delete()
+        html = self.get(self.editor).content.decode()
+        self.assertIn("В графике нет врачей", html)
+        self.assertRegex(html, r'data-panel-link href="[^"]*rows/new/[^"]*"[^>]*>Добавить врача')
+        self.assertIn("data-panel", html)
+
+    def test_empty_roster_for_a_viewer_is_only_a_message(self):
+        self.schedule.rows.all().delete()
+        html = self.get(self.viewer).content.decode()
+        self.assertIn("В графике нет врачей", html)
+        self.assertNotIn("rows/new", html)
+
+    def test_rows_are_numbered_by_a_counter_not_by_markup(self):
+        self.assertIn("grid__who", self.get(self.editor).content.decode())

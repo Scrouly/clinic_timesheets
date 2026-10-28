@@ -9,12 +9,14 @@ from .models import (
     Doctor,
     MonthNorm,
     Schedule,
+    ScheduleRow,
     Shift,
     ShiftLengthRule,
     Specialty,
     SpecialtyMonthNorm,
     TimeKind,
 )
+from .rows import copy_roster
 
 
 @admin.register(Cabinet)
@@ -56,10 +58,22 @@ class TimeKindAdmin(AdminHrOnlyMixin, admin.ModelAdmin):
     list_editable = ("is_active",)
 
 
+class ScheduleRowInline(AdminHrOnlyMixin, admin.TabularInline):
+    model = ScheduleRow
+    extra = 0
+    fields = ("assignment", "rate", "sort_order")
+
+
 @admin.register(Schedule)
 class ScheduleAdmin(AdminHrOnlyMixin, admin.ModelAdmin):
     list_display = ("department", "year", "month", "status", "approved_on")
     list_filter = ("department", "year", "status")
+    inlines = (ScheduleRowInline,)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not change:
+            copy_roster(obj)  # новый график получает состав предыдущего месяца
 
 
 @admin.register(Shift)
