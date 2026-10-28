@@ -8,11 +8,10 @@ from collections import defaultdict
 from datetime import date, time
 from decimal import Decimal
 
-from django.db.models import Q
 from django.utils import timezone
 
 from .checks import HOURS_NORM, check_schedule
-from .models import Assignment, Cabinet, CalendarDay, DayKind, Shift
+from .models import Cabinet, CalendarDay, DayKind, ScheduleRow, Shift
 from .norms import MonthNorms
 
 WEEKDAYS = ("пн", "вт", "ср", "чт", "пт", "сб", "вс")
@@ -92,22 +91,18 @@ def build_department_grid(schedule, user):
     for shift in Shift.objects.filter(schedule=schedule).select_related("kind", "cabinet"):
         by_cell[(shift.assignment_id, shift.date)].append(shift)
 
-    assignments = (
-        Assignment.objects.filter(department=schedule.department)
-        .filter(Q(is_active=True) | Q(shifts__schedule=schedule))
-        .select_related("doctor", "specialty")
-        .distinct()
-        .order_by()
+    schedule_rows = ScheduleRow.objects.filter(schedule=schedule).select_related(
+        "assignment__doctor", "assignment__specialty"
     )
-    assignments = sorted(
-        assignments,
-        key=lambda a: (a.doctor.last_name, a.doctor.first_name, a.doctor.patronymic, a.specialty.name),
-    )
+    shift_counts = defaultdict(int)
+    for (assignment_id, _day), cell_shifts in by_cell.items():
+        shift_counts[assignment_id] += len(cell_shifts)
 
     days = month_days(schedule.year, schedule.month)
     norms = MonthNorms(schedule.year, schedule.month)
     rows = []
-    for assignment in assignments:
+    for schedule_row in schedule_rows:
+        assignment = schedule_row.assignment
         cells = [
             make_cell(
                 day,
@@ -119,12 +114,14 @@ def build_department_grid(schedule, user):
             for day in days
         ]
         planned = sum((cell["hours"] for cell in cells), ZERO)
-        norm = norms.hours(assignment)
+        norm = norms.hours(assignment, rate=schedule_row.rate)
         rows.append(
             {
+                "row": schedule_row,
                 "assignment": assignment,
                 "name": assignment.doctor.short_name,
-                "position": f"{assignment.specialty} ({_rate_text(assignment.rate)} ст.)",
+                "position": f"{assignment.specialty} ({_rate_text(schedule_row.rate)} ст.)",
+                "shift_count": shift_counts.get(assignment.id, 0),
                 "cells": cells,
                 "worked_days": sum(1 for cell in cells if cell["kind"] == "shift"),
                 "planned": planned,

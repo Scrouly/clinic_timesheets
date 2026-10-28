@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from apps.accounts.models import Role
 from apps.core.tests.test_access import PASSWORD, make_user
-from apps.schedule.models import Schedule
+from apps.schedule.models import Assignment, Schedule
 
 from .helpers import ScheduleTestMixin
 
@@ -38,7 +38,16 @@ class DashboardDataTests(ScheduleTestMixin, TestCase):
         self.assertIsNone(self.rows(response)[self.dept_b.pk]["schedule"])
         self.assertContains(response, "Не создан")
 
-    def test_active_doctors_are_counted_once(self):
+    def test_without_a_schedule_active_doctors_are_counted_once(self):
+        self.schedule.delete()
+        self.assertEqual(self.rows(self.get())[self.dept_a.pk]["doctors"], 2)
+
+    def test_with_a_schedule_doctors_are_counted_by_its_rows(self):
+        active = list(Assignment.objects.filter(department=self.dept_a, is_active=True))
+        for assignment in active:
+            self.make_row(assignment, self.schedule)
+        # тот же врач второй строкой (другая профессия) считается один раз
+        self.make_row(self.make_assignment(doctor=active[0].doctor, specialty=self.uzd), self.schedule)
         self.assertEqual(self.rows(self.get())[self.dept_a.pk]["doctors"], 2)
 
     def test_stale_note_is_gone(self):

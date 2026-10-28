@@ -39,3 +39,15 @@ class AdminHrOnlyMixinTests(TestCase):
     def test_hr_without_staff_flag_is_denied(self):
         request = self.request_for(Role.HR, is_staff=False)
         self.assertFalse(self.model_admin.has_change_permission(request))
+
+
+class InlineCompatibilityTests(TestCase):
+    """Миксин работает и в ModelAdmin, и во вложенных таблицах, где права спрашивают с объектом."""
+
+    def test_add_permission_accepts_an_object(self):
+        user = User.objects.create_user("inline-hr", role=Role.HR, is_staff=True)
+        request = RequestFactory().get("/admin/")
+        request.user = user
+        model_admin = DepartmentTestAdmin(Department, AdminSite())
+        self.assertTrue(model_admin.has_add_permission(request, None))
+        self.assertTrue(model_admin.has_add_permission(request, object()))

@@ -20,12 +20,15 @@ class MonthNorms:
             SpecialtyMonthNorm.objects.filter(year=year, month=month).values_list("specialty_id", "hours")
         )
 
-    def hours(self, assignment):
-        """Норма профессии (если задана) или общая норма месяца, умноженная на ставку; None, если норм нет."""
+    def hours(self, assignment, rate=None):
+        """Норма профессии (если задана) или общая норма месяца, умноженная на ставку; None, если норм нет.
+
+        rate: ставка месяца из строки графика; без неё берётся ставка по умолчанию у Assignment.
+        """
         base = self.by_specialty.get(assignment.specialty_id, self.general)
         if base is None:
             return None
-        return (base * assignment.rate).quantize(CENT, rounding=ROUND_HALF_UP)
+        return (base * (assignment.rate if rate is None else rate)).quantize(CENT, rounding=ROUND_HALF_UP)
 
 
 def norm_hours(assignment, year, month):

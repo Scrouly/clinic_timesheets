@@ -1,0 +1,43 @@
+{% comment %}
+  Строка-заготовка «＋ добавить врача» и меню строки. Клонируется скриптом grid-rows.js и вставляется в таблицу
+  на место, где нажали «＋». Без JavaScript работают ссылки на страницы форм.
+{% endcomment %}
+<template id="row-picker-template">
+  <tr class="row-picker">
+    <td class="row-picker__cell" colspan="{{ days|length|add:5 }}">
+      <form class="row-picker__form" novalidate aria-label="Добавить врача в график">
+        <div class="field row-picker__field row-picker__field--doctor">
+          <label class="field__label" data-picker-doctor-label>Врач</label>
+          <input type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" autocomplete="off"
+                 placeholder="Фамилия, имя или табельный номер" data-picker-input>
+          <ul class="row-picker__list" role="listbox" hidden data-picker-list></ul>
+        </div>
+        <div class="field row-picker__field">
+          <label class="field__label" data-picker-specialty-label>Профессия</label>
+          <select data-picker-specialty>
+            <option value="">Выберите профессию</option>
+            {% for specialty in specialties %}<option value="{{ specialty.pk }}">{{ specialty.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field row-picker__field row-picker__field--rate">
+          <label class="field__label" data-picker-rate-label>Ставка</label>
+          <input type="text" inputmode="decimal" autocomplete="off" value="1" data-picker-rate>
+        </div>
+        <div class="row-picker__actions">
+          <button class="btn btn--primary" type="submit">Добавить</button>
+          <button class="btn" type="button" data-picker-cancel>Отмена</button>
+        </div>
+        <p class="row-picker__status" role="status" data-picker-status></p>
+        <p class="row-picker__hint">Нет нужного человека? Его заводит кадровик.</p>
+      </form>
+    </td>
+  </tr>
+</template>
+
+<div class="row-menu" id="row-menu" popover role="menu" aria-label="Действия со строкой">
+  <button class="row-menu__item" type="button" role="menuitem" data-menu="add">Добавить врача ниже</button>
+  <a class="row-menu__item" role="menuitem" data-menu="edit" data-panel-link href="#">Ставка и профессия…</a>
+  <button class="row-menu__item" type="button" role="menuitem" data-menu="up">Поднять выше</button>
+  <button class="row-menu__item" type="button" role="menuitem" data-menu="down">Опустить ниже</button>
+  <a class="row-menu__item row-menu__item--danger" role="menuitem" data-menu="remove" data-panel-link href="#">Убрать из графика…</a>
+</div>

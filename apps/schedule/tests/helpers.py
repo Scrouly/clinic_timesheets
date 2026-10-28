@@ -10,6 +10,7 @@ from apps.schedule.models import (
     Cabinet,
     Doctor,
     Schedule,
+    ScheduleRow,
     Shift,
     ShiftLengthRule,
     Specialty,
@@ -86,3 +87,18 @@ class ScheduleTestMixin:
         return Shift.objects.create(
             schedule=schedule, assignment=assignment, date=date(2026, 1, day), kind=kind
         )
+
+    def make_schedule(self, department=None, year=2026, month=1):
+        schedule, _ = Schedule.objects.get_or_create(
+            department=department or self.dept_a, year=year, month=month
+        )
+        return schedule
+
+    def make_row(self, assignment, schedule=None, rate=None):
+        """Строка графика врача; график января 2026 берётся или создаётся сам."""
+        schedule = schedule or self.make_schedule(assignment.department)
+        row = ScheduleRow.ensure(schedule, assignment)
+        if rate is not None:
+            row.rate = Decimal(rate)
+            row.save()
+        return row

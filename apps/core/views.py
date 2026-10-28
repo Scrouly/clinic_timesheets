@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 
 from apps.accounts.models import Role
-from apps.schedule.models import Assignment, Schedule
+from apps.schedule.models import Assignment, Schedule, ScheduleRow
 
 from .context_processors import MONTHS_NOMINATIVE
 from .demo import build_demo_grid
@@ -27,11 +27,18 @@ class DashboardView(TemplateView):
                 year=today.year, month=today.month, department__in=departments
             )
         }
+        # врачей считаем по строкам графика месяца, а пока графика нет, по действующим врачам отделения
         doctors = dict(
             Assignment.objects.filter(department__in=departments, is_active=True)
             .values("department")
             .annotate(total=Count("doctor", distinct=True))
             .values_list("department", "total")
+        )
+        doctors.update(
+            ScheduleRow.objects.filter(schedule__in=schedules.values())
+            .values("schedule__department")
+            .annotate(total=Count("assignment__doctor", distinct=True))
+            .values_list("schedule__department", "total")
         )
         context["departments"] = departments
         context["rows"] = [

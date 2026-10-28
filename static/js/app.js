@@ -58,6 +58,7 @@
     } catch (e) { /* ничего страшного */ }
   }
   restoreScroll();
+  window.ClinicGrid = { saveScroll: saveScroll };  // для grid-rows.js: запомнить прокрутку перед перезагрузкой
 
   if (panel && typeof panel.showModal === "function") {
     var panelBody = panel.querySelector("[data-panel-body]");
@@ -87,7 +88,7 @@
     });
 
     panel.addEventListener("submit", function (event) {
-      var form = event.target.closest("[data-shift-form]");
+      var form = event.target.closest("[data-shift-form], [data-panel-form]");
       if (!form) return;
       event.preventDefault();
       fetch(form.action, { method: "POST", body: new FormData(form), headers: FETCH, credentials: "same-origin" })

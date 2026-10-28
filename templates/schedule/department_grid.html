@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% load ui_tags %}
 {% block page_title_text %}{{ schedule.department.name }}, {{ month_title }}{% endblock %}
 {% block page_title %}{{ schedule.department.name }}{% endblock %}
@@ -48,7 +49,7 @@
   </div>
 
   {% if rows %}
-    <div class="grid-wrap grid-wrap--sums" tabindex="0" role="region" aria-label="График за {{ month_title }}">
+    <div class="grid-wrap grid-wrap--sums" tabindex="0" role="region" aria-label="График за {{ month_title }}"{% if can_edit %} data-rows data-search-url="{% url 'schedule_doctors' schedule.pk %}" data-create-url="{% url 'row_create' schedule.pk %}" data-csrf="{{ csrf_token }}"{% endif %}>
       <table class="grid">
         <caption class="sr-only">График за {{ month_title }}: врачи по строкам, дни месяца по столбцам</caption>
         <thead>
@@ -69,10 +70,28 @@
         </thead>
         <tbody>
           {% for row in rows %}
-            <tr>
+            <tr id="row-{{ row.row.pk }}">
               <th class="grid__who" scope="row">
                 <span class="grid__name">{{ row.name }}</span>
                 <span class="grid__pos">{{ row.position }}</span>
+                {% if can_edit %}
+                  <button class="btn btn--quiet btn--icon row-menu__toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Действия со строкой: {{ row.name }}"
+                    data-row-menu data-name="{{ row.name }}" data-shifts="{{ row.shift_count }}" data-position="{{ forloop.counter }}"
+                    data-edit-url="{% url 'row_edit' schedule.pk row.row.pk %}?next={{ request.get_full_path|urlencode }}"
+                    data-remove-url="{% url 'row_remove' schedule.pk row.row.pk %}?next={{ request.get_full_path|urlencode }}"
+                    data-move-url="{% url 'row_move' schedule.pk row.row.pk %}"
+                    data-first="{% if forloop.first %}1{% endif %}" data-last="{% if forloop.last %}1{% endif %}">
+                    <svg class="icon" aria-hidden="true"><use href="#i-more"/></svg>
+                  </button>
+                  {% if forloop.first %}
+                    <button class="row-add row-add--above" type="button" data-row-add data-position="0" aria-label="Добавить врача выше: {{ row.name }}">
+                      <svg class="icon icon--small" aria-hidden="true"><use href="#i-plus"/></svg>
+                    </button>
+                  {% endif %}
+                  <button class="row-add row-add--below" type="button" data-row-add data-position="{{ forloop.counter }}" aria-label="Добавить врача ниже: {{ row.name }}">
+                    <svg class="icon icon--small" aria-hidden="true"><use href="#i-plus"/></svg>
+                  </button>
+                {% endif %}
               </th>
               {% for cell in row.cells %}
                 <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.holiday %} is-holiday{% endif %}{% if cell.today %} is-today{% endif %}{% if cell.has_issue %} cell--error{% endif %}">
@@ -94,12 +113,29 @@
               <td class="grid__sum{% if row.deviation is not None %}{% if row.deviation < 0 %} is-short{% elif row.deviation > 0 %} is-over{% endif %}{% endif %}">{{ row.deviation|hours }}</td>
             </tr>
           {% endfor %}
+          {% if can_edit %}
+            <tr class="grid__add-row">
+              <th class="grid__who" scope="row">
+                <button class="btn btn--quiet row-add-bottom" type="button" data-row-add data-position="{{ rows|length }}">
+                  <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>
+                  Добавить врача
+                </button>
+              </th>
+              <td colspan="{{ days|length|add:4 }}"></td>
+            </tr>
+          {% endif %}
         </tbody>
       </table>
     </div>
-    {% if can_edit %}{% include "partials/_side_panel.html" %}{% endif %}
   {% else %}
-    {% include "partials/_empty.html" with title="В отделении нет врачей" text="Добавьте врачей и их работу в отделении в разделе администрирования." %}
+    {% include "partials/_empty.html" with title="В графике нет врачей" text="Добавьте врачей в график: выбор идёт из справочника сотрудников." %}
+    {% if can_edit %}
+      <p><a class="btn btn--primary" data-panel-link href="{% url 'row_create' schedule.pk %}?position=0&amp;next={{ request.get_full_path|urlencode }}">Добавить врача</a></p>
+    {% endif %}
+  {% endif %}
+  {% if can_edit %}
+    {% include "partials/_side_panel.html" %}
+    {% if rows %}{% include "schedule/_row_picker.html" %}{% endif %}
   {% endif %}
 
   {% if issues %}
@@ -111,3 +147,5 @@
     </section>
   {% endif %}
 {% endblock %}
+
+{% block extra_js %}{% if can_edit %}<script src="{% static 'js/grid-rows.js' %}" defer></script>{% endif %}{% endblock %}

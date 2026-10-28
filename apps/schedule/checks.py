@@ -9,7 +9,7 @@ from decimal import Decimal
 
 from django.db.models import Q
 
-from .models import Assignment, Shift
+from .models import ScheduleRow, Shift
 from .norms import MonthNorms, planned_hours_by_assignment
 
 SHIFT_TOO_SHORT = "shift_too_short"
@@ -52,11 +52,15 @@ def _pairs(items):
             yield first, second
 
 
-def check_shift_length(shifts):
-    """Длина рабочей смены в границах правила профессии или своих границ Assignment."""
+def check_shift_length(shifts, rates=None):
+    """Длина рабочей смены в границах правила профессии или своих границ Assignment.
+
+    rates: {assignment_id: ставка месяца из строки графика}; без неё берётся ставка Assignment.
+    """
+    rates = rates or {}
     issues = []
     for shift in _working(shifts):
-        minimum, maximum = shift.assignment.shift_limits()
+        minimum, maximum = shift.assignment.shift_limits(rate=rates.get(shift.assignment_id))
         hours = shift.hours
         who = f"{shift.assignment.doctor.short_name}, {shift.date:%d.%m}"
         if minimum is not None and hours < minimum:
@@ -148,18 +152,19 @@ def check_cabinet_overlap(shifts):
 
 
 def check_hours_norm(schedule):
-    """Часы за месяц совпадают с нормой. Проверяются Assignment, у которых есть записи в графике."""
-    assignments = (
-        Assignment.objects.filter(shifts__schedule=schedule)
+    """Часы за месяц совпадают с нормой. Проверяются строки графика, в которых есть записи."""
+    rows = list(
+        ScheduleRow.objects.filter(schedule=schedule, assignment__shifts__schedule=schedule)
         .distinct()
-        .select_related("doctor", "specialty")
+        .select_related("assignment__doctor", "assignment__specialty")
+        .order_by("sort_order", "id")
     )
-    assignments = list(assignments)
     norms = MonthNorms(schedule.year, schedule.month)
-    planned_by_id = planned_hours_by_assignment([a.id for a in assignments], schedule.year, schedule.month)
+    planned_by_id = planned_hours_by_assignment([r.assignment_id for r in rows], schedule.year, schedule.month)
     issues = []
-    for assignment in assignments:
-        norm = norms.hours(assignment)
+    for row in rows:
+        assignment = row.assignment
+        norm = norms.hours(assignment, rate=row.rate)
         if norm is None:
             continue
         planned = planned_by_id[assignment.id]
@@ -209,8 +214,9 @@ def check_schedule(schedule):
     related.update({s.id: s for s in own})
     everything = list(related.values())
 
+    rates = dict(ScheduleRow.objects.filter(schedule=schedule).values_list("assignment_id", "rate"))
     issues = []
-    issues += check_shift_length(own)
+    issues += check_shift_length(own, rates)
     issues += check_work_on_absence(own)
     issues += check_doctor_overlap(everything)
     issues += check_cabinet_overlap(everything)

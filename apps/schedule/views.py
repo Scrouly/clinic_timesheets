@@ -18,7 +18,7 @@ from apps.core.permissions import DepartmentScopedMixin
 
 from .forms import ShiftForm
 from .grids import build_cabinet_grid, build_department_grid
-from .models import Schedule, Shift
+from .models import Schedule, Shift, Specialty
 
 
 def period_title(year, month):
@@ -87,6 +87,8 @@ class ScheduleDetailView(DepartmentScopedMixin, DetailView):
         context = super().get_context_data(**kwargs)
         schedule = self.object
         context.update(build_department_grid(schedule, self.request.user))
+        if context["can_edit"]:
+            context["specialties"] = Specialty.objects.filter(is_active=True)  # для строки-заготовки «＋ врач»
         context["month_title"] = period_title(schedule.year, schedule.month)
         neighbours = Schedule.objects.filter(department=schedule.department)
         context["prev_schedule"] = (
