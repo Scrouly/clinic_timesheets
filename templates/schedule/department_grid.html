@@ -49,7 +49,13 @@
   </div>
 
   {% if rows %}
-    <div class="grid-wrap grid-wrap--sums" tabindex="0" role="region" aria-label="График за {{ month_title }}"{% if can_edit %} data-rows data-search-url="{% url 'schedule_doctors' schedule.pk %}" data-create-url="{% url 'row_create' schedule.pk %}" data-csrf="{{ csrf_token }}"{% endif %}>
+    {% if can_edit %}
+      <div class="grid-bar" data-grid-bar hidden>
+        <label class="grid-bar__name" for="grid-formula" data-bar-name>Ячейка</label>
+        <input class="grid-bar__input" id="grid-formula" type="text" autocomplete="off" spellcheck="false" disabled data-bar-input>
+      </div>
+    {% endif %}
+    <div class="grid-wrap grid-wrap--sums" tabindex="0" role="region" aria-label="График за {{ month_title }}"{% if can_edit %} data-rows data-search-url="{% url 'schedule_doctors' schedule.pk %}" data-create-url="{% url 'row_create' schedule.pk %}" data-csrf="{{ csrf_token }}" data-editor data-cells-url="{% url 'cell_apply' schedule.pk %}" data-month-gen="{{ month_genitive }}"{% endif %}>
       <table class="grid">
         <caption class="sr-only">График за {{ month_title }}: врачи по строкам, дни месяца по столбцам</caption>
         <thead>
@@ -70,7 +76,7 @@
         </thead>
         <tbody>
           {% for row in rows %}
-            <tr id="row-{{ row.row.pk }}">
+            <tr id="row-{{ row.row.pk }}" data-row="{{ row.row.pk }}" data-assignment="{{ row.assignment.pk }}">
               <th class="grid__who" scope="row">
                 <span class="grid__name">{{ row.name }}</span>
                 <span class="grid__pos">{{ row.position }}</span>
@@ -94,7 +100,7 @@
                 {% endif %}
               </th>
               {% for cell in row.cells %}
-                <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.holiday %} is-holiday{% endif %}{% if cell.today %} is-today{% endif %}{% if cell.has_issue %} cell--error{% endif %}">
+                <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.holiday %} is-holiday{% endif %}{% if cell.today %} is-today{% endif %}{% if cell.has_issue %} cell--error{% endif %}" data-date="{{ cell.date|date:'Y-m-d' }}" data-day="{{ cell.number }}" data-value="{{ cell.value }}">
                   {% if cell.has_issue %}<svg class="icon icon--small cell__flag" aria-hidden="true"><use href="#i-alert"/></svg><span class="sr-only">Накладка или ошибка</span>{% endif %}
                   {% for item in cell.items %}
                     <span class="cell__item">
@@ -107,10 +113,10 @@
                   {% if cell.editable %}<a class="cell__add" data-panel-link href="{% url 'shift_create' %}?assignment={{ row.assignment.pk }}&amp;date={{ cell.date|date:'Y-m-d' }}&amp;next={{ request.get_full_path|urlencode }}" aria-label="Добавить смену: {{ row.name }}, {{ cell.number }}">+</a>{% endif %}
                 </td>
               {% endfor %}
-              <td class="grid__sum">{{ row.worked_days }}</td>
-              <td class="grid__sum">{{ row.planned|hours }}</td>
-              <td class="grid__sum">{{ row.norm|hours }}</td>
-              <td class="grid__sum{% if row.deviation is not None %}{% if row.deviation < 0 %} is-short{% elif row.deviation > 0 %} is-over{% endif %}{% endif %}">{{ row.deviation|hours }}</td>
+              <td class="grid__sum" data-sum="days">{{ row.worked_days }}</td>
+              <td class="grid__sum" data-sum="planned">{{ row.planned|hours }}</td>
+              <td class="grid__sum" data-sum="norm">{{ row.norm|hours }}</td>
+              <td class="grid__sum{% if row.deviation is not None %}{% if row.deviation < 0 %} is-short{% elif row.deviation > 0 %} is-over{% endif %}{% endif %}" data-sum="deviation">{{ row.deviation|hours }}</td>
             </tr>
           {% endfor %}
           {% if can_edit %}
@@ -127,6 +133,19 @@
         </tbody>
       </table>
     </div>
+    {% if can_edit %}
+      <div class="grid-status" data-grid-status hidden>
+        <p class="grid-status__summary" data-status-summary></p>
+        <p class="grid-status__save" data-status-save role="status" aria-live="polite"></p>
+        <div class="grid-conflict" data-conflict role="alert" hidden>
+          <p class="grid-conflict__text" data-conflict-text></p>
+          <button class="btn" type="button" data-conflict-mine>Оставить моё</button>
+          <button class="btn" type="button" data-conflict-theirs>Оставить его</button>
+        </div>
+      </div>
+      <p class="grid-hint" data-grid-hint hidden>Выделите ячейку и печатайте: <kbd>9-15 301</kbd>, Enter сохраняет. <kbd>?</kbd> — все клавиши.</p>
+      {% include "schedule/_grid_help.html" %}
+    {% endif %}
   {% else %}
     {% include "partials/_empty.html" with title="В графике нет врачей" text="Добавьте врачей в график: выбор идёт из справочника сотрудников." %}
     {% if can_edit %}
@@ -138,14 +157,12 @@
     {% if rows %}{% include "schedule/_row_picker.html" %}{% endif %}
   {% endif %}
 
-  {% if issues %}
-    <section class="issues" aria-label="Ошибки графика">
-      <h2 class="issues__title">Ошибки и накладки: {{ issues|length }}</h2>
-      <ul class="issues__list">
-        {% for issue in issues %}<li>{{ issue.message }}</li>{% endfor %}
-      </ul>
-    </section>
-  {% endif %}
+  <section class="issues" aria-label="Ошибки графика" data-issues{% if not issues %} hidden{% endif %}>
+    <h2 class="issues__title">Ошибки и накладки: <span data-issues-count>{{ issues|length }}</span></h2>
+    <ul class="issues__list" data-issues-list>
+      {% for issue in issues %}<li>{{ issue.message }}</li>{% endfor %}
+    </ul>
+  </section>
 {% endblock %}
 
-{% block extra_js %}{% if can_edit %}<script src="{% static 'js/grid-rows.js' %}" defer></script>{% endif %}{% endblock %}
+{% block extra_js %}{% if can_edit %}<script src="{% static 'js/grid-editor.js' %}" defer></script><script src="{% static 'js/grid-rows.js' %}" defer></script>{% endif %}{% endblock %}

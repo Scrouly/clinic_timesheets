@@ -1,0 +1,27 @@
+{% comment %}Справка по клавишам сетки. Открывается клавишей «?», закрывается Esc.{% endcomment %}
+<dialog class="grid-help" data-grid-help aria-labelledby="grid-help-title">
+  <h2 id="grid-help-title" class="grid-help__title">Клавиши сетки</h2>
+  <table class="grid-help__table">
+    <caption class="sr-only">Клавиши и их действия</caption>
+    <tbody>
+      <tr><th scope="row"><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></th><td>перейти к соседней ячейке</td></tr>
+      <tr><th scope="row"><kbd>Home</kbd> <kbd>End</kbd></th><td>в начало и в конец строки</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>Home</kbd> <kbd>Ctrl</kbd>+<kbd>End</kbd></th><td>первая и последняя ячейка</td></tr>
+      <tr><th scope="row">любой символ</th><td>начать ввод вместо текущего значения</td></tr>
+      <tr><th scope="row"><kbd>F2</kbd> или <kbd>Enter</kbd></th><td>править текущее значение</td></tr>
+      <tr><th scope="row"><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></th><td>сохранить и перейти вниз / вверх</td></tr>
+      <tr><th scope="row"><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></th><td>сохранить и перейти вправо / влево</td></tr>
+      <tr><th scope="row"><kbd>Esc</kbd></th><td>отменить ввод</td></tr>
+      <tr><th scope="row"><kbd>Delete</kbd></th><td>очистить ячейку (выходной)</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>F2</kbd></th><td>открыть подробную форму смены</td></tr>
+    </tbody>
+  </table>
+  <h3 class="grid-help__sub">Что печатать</h3>
+  <ul class="grid-help__list">
+    <li><kbd>8-14:40 301</kbd> — смена с 8:00 до 14:40 в кабинете 301</li>
+    <li><kbd>9-15</kbd> — кабинет возьмётся из последней смены строки</li>
+    <li><kbd>8-12 301; 14-18 302</kbd> — две смены в один день</li>
+    <li><kbd>отп</kbd>, <kbd>б/л</kbd> — отпуск, больничный (метки из справочника)</li>
+  </ul>
+  <form method="dialog"><button class="btn btn--primary" type="submit">Закрыть</button></form>
+</dialog>

@@ -568,3 +568,60 @@ a { color: var(--brand-text); text-underline-offset: 0.15em; }
   .row-picker__form { position: static; }
 }
 @media print { .row-menu__toggle, .row-add, .grid__add-row, .row-picker { display: none !important; } }
+
+/* Ввод прямо в ячейку (grid-editor.js): рамка активной ячейки, строка ввода, строка состояния */
+.issues[hidden], .grid-bar[hidden], .grid-status[hidden], .grid-hint[hidden], .grid-conflict[hidden] { display: none; }
+.grid--editor .cell { cursor: cell; user-select: none; -webkit-user-select: none; }
+.grid--editor .cell__add { display: none; }
+.grid--editor .cell__link { pointer-events: none; }
+/* рамка активной ячейки: слой поверх ячейки, обычная граница (видна и в режиме высокой контрастности) */
+.cell.is-active::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; border: 3px solid var(--brand-strong); pointer-events: none;
+}
+.cell__editor {
+  position: absolute; top: 0; left: 0; z-index: 4; box-sizing: border-box; width: 100%; height: 100%;
+  min-width: 100%; padding: 0 0.3rem; border: 2px solid var(--brand-strong); border-radius: 0;
+  background: var(--surface); color: var(--ink); font: inherit; font-size: var(--text-sm); text-align: center;
+}
+.cell.is-editing .cell__editor { width: 13rem; }
+.cell--pending { color: var(--ink-3); font-style: italic; }
+.cell--unsaved { outline: 2px dashed var(--warn-ink); outline-offset: -2px; }
+.cell--conflict { outline: 2px solid var(--st-changed-bar); outline-offset: -2px; background: var(--st-changed-bg); }
+.cell__hint {
+  position: absolute; top: 100%; left: 0; z-index: 5; width: max-content; min-width: 10rem; max-width: 18rem;
+  padding: 0.3rem 0.5rem; border-radius: var(--radius-sm); background: var(--surface-inverse); color: var(--on-fill);
+  font-size: var(--text-sm); line-height: 1.3; text-align: left; box-shadow: 0 2px 8px var(--shadow-pop); pointer-events: none;
+}
+
+.grid-bar { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.5rem; }
+.grid-bar__name {
+  flex: 0 0 auto; min-width: 12rem; padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--ink-2); font-size: var(--text-md);
+}
+.grid-bar__input {
+  flex: 1 1 auto; min-width: 0; min-height: 2.25rem; padding: 0.35rem 0.6rem; border: 1px solid var(--field-border);
+  border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--text-md);
+}
+.grid-bar__input:disabled { background: var(--surface-2); }
+.grid-status { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; margin-top: 0.5rem; color: var(--ink-2); font-size: var(--text-md); }
+.grid-status__summary { flex: 1 1 20rem; margin: 0; }
+.grid-status__save { margin: 0; color: var(--ink-3); }
+.grid-conflict {
+  display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem;
+  border-radius: var(--radius); background: var(--st-changed-bg); color: var(--st-changed-ink);
+}
+.grid-conflict__text { flex: 1 1 20rem; margin: 0; }
+.grid-hint { margin: 0.35rem 0 0; color: var(--ink-3); font-size: var(--text-sm); }
+.grid-hint kbd, .grid-help kbd {
+  padding: 0.05rem 0.35rem; border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--ink); font-family: inherit; font-size: var(--text-sm);
+}
+.grid-help { max-width: min(36rem, 92vw); padding: 1.25rem 1.5rem; border: 1px solid var(--line); border-radius: var(--radius-lg); color: var(--ink); }
+.grid-help::backdrop { background: var(--scrim); }
+.grid-help__title { margin: 0 0 0.75rem; font-size: var(--text-lg); }
+.grid-help__sub { margin: 1rem 0 0.4rem; font-size: var(--text-base); }
+.grid-help__table { border-collapse: collapse; font-size: var(--text-md); }
+.grid-help__table th { padding: 0.25rem 1rem 0.25rem 0; text-align: left; font-weight: 500; white-space: nowrap; vertical-align: top; }
+.grid-help__table td { padding: 0.25rem 0; color: var(--ink-2); }
+.grid-help__list { margin: 0 0 1rem; padding-left: 1.1rem; color: var(--ink-2); font-size: var(--text-md); }
+@media print { .grid-bar, .grid-status, .grid-hint, .cell__hint, .cell__editor { display: none !important; } }

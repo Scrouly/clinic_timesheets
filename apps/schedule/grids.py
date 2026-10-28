@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from django.utils import timezone
 
+from .cellinput import format_cell
 from .checks import HOURS_NORM, check_schedule
 from .models import Cabinet, CalendarDay, DayKind, ScheduleRow, Shift
 from .norms import MonthNorms
@@ -70,6 +71,7 @@ def make_cell(day, shifts, editable_of, issue_shift_ids, empty_editable=False):
         "today": day["is_today"],
         "items": items,
         "kind": kind,
+        "value": format_cell(shifts),  # каноническая запись: что видит и править человек в ячейке
         "hours": sum((s.hours for s in shifts), ZERO),
         "editable": all(item["editable"] for item in items) if items else empty_editable,
         "has_issue": any(s.id in issue_shift_ids for s in shifts),
