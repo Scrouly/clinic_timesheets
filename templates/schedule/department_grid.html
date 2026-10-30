@@ -13,6 +13,10 @@
 {% block page_actions %}
   <a class="btn" href="{% url 'schedules' %}">Все графики</a>
   {% if can_edit %}<a class="btn" data-panel-link href="{% url 'shift_create' %}?next={{ request.get_full_path|urlencode }}">Добавить смену</a>{% endif %}
+  <div class="density-switch" role="group" aria-label="Плотность сетки" data-density-switch hidden>
+    <button class="btn density-switch__btn" type="button" data-density-value="detailed" aria-pressed="true">Подробно</button>
+    <button class="btn density-switch__btn" type="button" data-density-value="compact" aria-pressed="false">Компактно</button>
+  </div>
   <div class="month-switch">
     {% if prev_schedule %}
       <a class="btn btn--icon" href="{% url 'schedule_detail' prev_schedule.pk %}" aria-label="Предыдущий график: {{ prev_schedule.title }}">
@@ -55,7 +59,7 @@
         <input class="grid-bar__input" id="grid-formula" type="text" autocomplete="off" spellcheck="false" disabled data-bar-input>
       </div>
     {% endif %}
-    <div class="grid-wrap grid-wrap--sums" tabindex="0" role="region" aria-label="График за {{ month_title }}"{% if can_edit %} data-rows data-search-url="{% url 'schedule_doctors' schedule.pk %}" data-create-url="{% url 'row_create' schedule.pk %}" data-csrf="{{ csrf_token }}" data-editor data-cells-url="{% url 'cell_apply' schedule.pk %}" data-month-gen="{{ month_genitive }}"{% endif %}>
+    <div class="grid-wrap grid-wrap--sums" tabindex="0" role="region" aria-label="График за {{ month_title }}" data-density="detailed"{% if can_edit %} data-rows data-search-url="{% url 'schedule_doctors' schedule.pk %}" data-create-url="{% url 'row_create' schedule.pk %}" data-csrf="{{ csrf_token }}" data-editor data-cells-url="{% url 'cell_apply' schedule.pk %}" data-month-gen="{{ month_genitive }}"{% endif %}>
       <table class="grid">
         <caption class="sr-only">График за {{ month_title }}: врачи по строкам, дни месяца по столбцам</caption>
         <thead>
@@ -78,7 +82,7 @@
           {% for row in rows %}
             <tr id="row-{{ row.row.pk }}" data-row="{{ row.row.pk }}" data-assignment="{{ row.assignment.pk }}">
               <th class="grid__who" scope="row">
-                <span class="grid__name">{{ row.name }}</span>
+                <span class="grid__name" title="{{ row.position }}">{{ row.name }}</span>
                 <span class="grid__pos">{{ row.position }}</span>
                 {% if can_edit %}
                   <button class="btn btn--quiet btn--icon row-menu__toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Действия со строкой: {{ row.name }}"
@@ -102,14 +106,7 @@
               {% for cell in row.cells %}
                 <td class="cell cell--{{ cell.kind }}{% if cell.weekend %} is-weekend{% endif %}{% if cell.holiday %} is-holiday{% endif %}{% if cell.today %} is-today{% endif %}{% if cell.has_issue %} cell--error{% endif %}" data-date="{{ cell.date|date:'Y-m-d' }}" data-day="{{ cell.number }}" data-value="{{ cell.value }}">
                   {% if cell.has_issue %}<svg class="icon icon--small cell__flag" aria-hidden="true"><use href="#i-alert"/></svg><span class="sr-only">Накладка или ошибка</span>{% endif %}
-                  {% for item in cell.items %}
-                    <span class="cell__item">
-                      {% if item.editable %}<a class="cell__link" data-panel-link href="{% url 'shift_update' item.id %}?next={{ request.get_full_path|urlencode }}">{% endif %}
-                      <span class="cell__time">{{ item.label }}</span>
-                      {% if item.cabinet %}<span class="cell__cab">{{ item.cabinet }}</span>{% endif %}
-                      {% if item.editable %}</a>{% endif %}
-                    </span>
-                  {% endfor %}
+                  {% include "schedule/_cell_content.html" with items=cell.items page_path=request.get_full_path %}
                   {% if cell.editable %}<a class="cell__add" data-panel-link href="{% url 'shift_create' %}?assignment={{ row.assignment.pk }}&amp;date={{ cell.date|date:'Y-m-d' }}&amp;next={{ request.get_full_path|urlencode }}" aria-label="Добавить смену: {{ row.name }}, {{ cell.number }}">+</a>{% endif %}
                 </td>
               {% endfor %}
@@ -165,4 +162,4 @@
   </section>
 {% endblock %}
 
-{% block extra_js %}{% if can_edit %}<script src="{% static 'js/grid-editor.js' %}" defer></script><script src="{% static 'js/grid-rows.js' %}" defer></script>{% endif %}{% endblock %}
+{% block extra_js %}<script src="{% static 'js/grid-density.js' %}" defer></script>{% if can_edit %}<script src="{% static 'js/grid-editor.js' %}" defer></script><script src="{% static 'js/grid-rows.js' %}" defer></script>{% endif %}{% endblock %}

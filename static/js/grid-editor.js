@@ -69,32 +69,69 @@
   }
   function refreshLabel(cell) { cell.setAttribute("aria-label", cellLabel(cell)); }
 
-  function readItems(cell) {
-    return Array.prototype.map.call(cell.querySelectorAll(".cell__item"), function (item) {
+  // блоки смен ячейки (сверху вниз: часы, кабинет, время) в виде простых объектов
+  function itemsOf(container) {
+    return Array.prototype.map.call(container.querySelectorAll(".cell__item"), function (item) {
       var time = item.querySelector(".cell__time");
       var cab = item.querySelector(".cell__cab");
-      return { label: time ? time.textContent.trim() : "", cabinet: cab ? cab.textContent.trim() : "" };
+      var hours = item.querySelector(".cell__hours");
+      return {
+        label: time ? time.textContent.trim() : "",
+        cabinet: cab ? cab.textContent.trim() : "",
+        hours: hours ? hours.textContent.trim() : "",
+        kind: item.classList.contains("cell__item--kind"),
+        pending: item.classList.contains("cell__item--pending")
+      };
     });
   }
+  function readItems(cell) { return itemsOf(cell); }
 
-  function renderItems(cell, items) {
+  function clearItems(cell) {
     Array.prototype.forEach.call(cell.querySelectorAll(".cell__item"), function (node) { node.remove(); });
+  }
+
+  function line(className, text) {
+    var node = document.createElement("span");
+    node.className = className;
+    node.textContent = text;  // textContent: ввод и названия кабинетов не становятся разметкой
+    return node;
+  }
+
+  // блоки смен рисуются из объектов: так показывается введённый, но ещё не сохранённый текст и возврат при отказе
+  function renderItems(cell, items) {
+    clearItems(cell);
     var first = cell.firstChild;
     items.forEach(function (item) {
       var box = document.createElement("span");
-      box.className = "cell__item";
-      var time = document.createElement("span");
-      time.className = "cell__time";
-      time.textContent = item.label;
-      box.appendChild(time);
-      if (item.cabinet) {
-        var cab = document.createElement("span");
-        cab.className = "cell__cab";
-        cab.textContent = item.cabinet;
-        box.appendChild(cab);
-      }
+      box.className = "cell__item" + (item.kind ? " cell__item--kind" : "") + (item.pending ? " cell__item--pending" : "");
+      if (item.hours) box.appendChild(line("cell__hours", item.hours));
+      if (item.cabinet) box.appendChild(line("cell__cab", item.cabinet));
+      box.appendChild(line("cell__time", item.label));
       cell.insertBefore(box, first);
     });
+  }
+
+  // содержимое ячейки, собранное сервером (экранировано Django): подставляется как есть, чтобы
+  // до и после сохранения ячейка выглядела одинаково
+  function htmlHolder(html) {
+    var box = document.createElement("div");
+    box.innerHTML = html;  // разметка от сервера, только для чтения значений
+    return box;
+  }
+
+  function itemsFromPayload(payload) {
+    return typeof payload.html === "string" ? itemsOf(htmlHolder(payload.html)) : payload.items;
+  }
+
+  function showHtml(cell, html) {
+    clearItems(cell);
+    if (!html || !html.trim()) return;
+    var holder = document.createElement("template");
+    holder.innerHTML = html;
+    Array.prototype.forEach.call(holder.content.querySelectorAll("a.cell__link"), function (link) {
+      link.setAttribute("tabindex", "-1");
+    });
+    cell.insertBefore(holder.content, cell.firstChild);
   }
 
   function setKind(cell, kind) {
@@ -328,7 +365,7 @@
     if (raw === known && !pending) return;  // ничего не изменилось
     cell.classList.add("cell--pending");
     cell.classList.remove("cell--unsaved");
-    renderItems(cell, raw ? [{ label: raw, cabinet: "" }] : []);
+    renderItems(cell, raw ? [{ label: raw, cabinet: "", hours: "", kind: true, pending: true }] : []);
     queue.push({ cell: cell, raw: raw });
     pump();
   }
@@ -422,10 +459,15 @@
   // ---------- показ результата
 
   function applyCell(cell, payload) {
-    renderItems(cell, payload.items);
+    if (typeof payload.html === "string") {
+      showHtml(cell, payload.html);
+      cell._items = readItems(cell);
+    } else {
+      renderItems(cell, payload.items);
+      cell._items = payload.items;
+    }
     setKind(cell, payload.kind);
     cell.dataset.value = payload.value;
-    cell._items = payload.items;
     cell.classList.remove("cell--pending", "cell--unsaved");
     if (payload.panel_url) cell.dataset.panelUrl = payload.panel_url;
     refreshLabel(cell);
@@ -436,7 +478,7 @@
     var waiting = queue.some(function (item) { return item.cell === cell; });
     if (waiting) {
       cell.dataset.value = data.cell.value;
-      cell._items = data.cell.items;
+      cell._items = itemsFromPayload(data.cell);
     } else {
       applyCell(cell, data.cell);
     }
@@ -507,7 +549,7 @@
     cell.classList.remove("cell--conflict");
     if (keepMine) {
       cell.dataset.value = first.current;  // теперь ждём именно это значение
-      cell._items = first.payload.items;
+      cell._items = itemsFromPayload(first.payload);
       submit(cell, first.raw);
     }
     showConflict();

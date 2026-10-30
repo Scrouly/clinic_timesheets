@@ -295,3 +295,35 @@ class AuditFixesTests(SimpleTestCase):
             self.assertGreaterEqual(contrast(t["--ink-2"], t[name]), 4.5, name)
         for selector in (".cell__cab", ".cell__add"):
             self.assertIn("var(--ink-2)", self.rule(selector))
+
+
+class ThreeLineCellStyleTests(SimpleTestCase):
+    def rule(self, selector):
+        return AuditFixesTests.rule(self, selector)
+
+    def test_density_modes_exist(self):
+        css = _css()
+        self.assertIn('[data-density="compact"]', css)
+        self.assertIn(".cell__hours", css)
+
+    def test_cell_lines_use_the_scale_and_no_small_text(self):
+        for selector in (".cell__hours", ".cell__cab", ".cell__time"):
+            body = self.rule(selector)
+            self.assertIn("var(--text-sm)", body, selector)
+            self.assertNotIn("var(--text-xs)", body, selector)
+
+    def test_hours_use_secondary_ink(self):
+        self.assertIn("var(--ink-2)", self.rule(".cell__hours"))
+
+    def test_error_cell_keeps_readable_secondary_lines(self):
+        css = _css()
+        self.assertIn(".cell--error .cell__hours", css)
+        self.assertIn("var(--st-error-ink)", self.rule(".cell--error .cell__cab"))
+
+    def test_compact_mode_hides_the_extra_lines_and_the_flag(self):
+        css = _css()
+        self.assertRegex(css, r'\[data-density="compact"\][^{]*\.cell__hours[^{]*\{[^}]*display: none')
+        self.assertRegex(css, r'\[data-density="compact"\][^{]*\.cell__flag[^{]*\{[^}]*display: none')
+
+    def test_detailed_rows_are_three_lines_high(self):
+        self.assertIn("calc(3 * 1.375rem)", _css())

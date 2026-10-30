@@ -10,6 +10,8 @@ from decimal import Decimal
 
 from django.utils import timezone
 
+from apps.core.templatetags.ui_tags import hours
+
 from .cellinput import format_cell
 from .checks import HOURS_NORM, check_schedule
 from .models import Cabinet, CalendarDay, DayKind, ScheduleRow, Shift
@@ -45,12 +47,20 @@ def month_days(year, month):
 
 def shift_item(shift, editable):
     working = shift.kind.is_working
+    cabinet = shift.cabinet.name if working and shift.cabinet_id else ""
+    shift_hours = shift.hours if working else None
+    if working:
+        title = f"{hours(shift_hours)} ч" + (f", кабинет {cabinet}" if cabinet else "")
+    else:
+        title = shift.kind.name
     return {
         "id": shift.id,
         "label": f"{shift.start:%H:%M}–{shift.end:%H:%M}" if working else shift.kind.short_label,
-        "cabinet": shift.cabinet.name if working and shift.cabinet_id else "",
+        "cabinet": cabinet,
         "working": working,
         "editable": editable,
+        "hours": shift_hours,  # расчёт из времени (его нигде не вводят), у нерабочего вида нет
+        "title": title,  # подсказка и подпись для режима «Компактно»
     }
 
 

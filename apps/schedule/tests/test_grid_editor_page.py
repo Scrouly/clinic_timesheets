@@ -57,3 +57,67 @@ class GridEditorPageTests(ScheduleTestMixin, TestCase):
         self.cab1.save()
         response = self.page(edit=[self.dept_a])
         self.assertNotContains(response, '301"><b>')
+
+
+class ThreeLineCellTests(ScheduleTestMixin, TestCase):
+    def setUp(self):
+        self.setUpData()
+        self.schedule = self.make_schedule()
+        self.assignment = self.make_assignment()
+        self.make_row(self.assignment)
+        self.make_shift(self.assignment, "9:00", "15:00", day=12)
+        self.make_shift(self.assignment, None, None, day=13, kind=self.vacation)
+        self.url = reverse("schedule_detail", args=[self.schedule.pk])
+
+    _users = 0
+
+    def html(self, **access):
+        type(self)._users += 1
+        user = make_access_user(f"viewer{self._users}", **access)
+        self.client.login(username=user.username, password=PASSWORD)
+        return self.client.get(self.url).content.decode()
+
+    def test_working_shift_shows_hours_cabinet_and_time_in_that_order(self):
+        html = self.html(edit=[self.dept_a])
+        self.assertRegex(
+            html,
+            r'<span class="cell__hours">6</span>\s*<span class="cell__cab">301</span>\s*'
+            r'<span class="cell__time">09:00–15:00</span>',
+        )
+
+    def test_hours_are_an_output_not_a_field(self):
+        html = self.html(edit=[self.dept_a])
+        grid = html[html.index('<table class="grid"'):html.index("</table>")]
+        self.assertNotIn("<input", grid)
+
+    def test_item_has_a_title_for_the_compact_mode(self):
+        self.assertIn('title="6 ч, кабинет 301"', self.html(edit=[self.dept_a]))
+
+    def test_absence_is_one_block_with_the_label_only(self):
+        html = self.html(edit=[self.dept_a])
+        start = html.index("cell__item--kind")
+        block = html[start:html.index("</td>", start)]
+        self.assertIn("ОТП", block)
+        self.assertNotIn("cell__hours", block)
+        self.assertNotIn("cell__cab", block)
+
+    def test_value_attribute_is_unchanged(self):
+        self.assertIn('data-value="09:00–15:00 · 301"', self.html(edit=[self.dept_a]))
+
+    def test_density_switch_is_there_for_editor_and_viewer(self):
+        for access in ({"edit": [self.dept_a]}, {"view": [self.dept_a]}):
+            html = self.html(**access)
+            self.assertIn("data-density-switch", html)
+            self.assertRegex(html, r'data-density-value="detailed"[^>]*aria-pressed="true"')
+            self.assertRegex(html, r'data-density-value="compact"[^>]*aria-pressed="false"')
+            self.assertIn("js/grid-density.js", html)
+            self.assertRegex(html, r'class="grid-wrap[^"]*"[^>]*data-density="detailed"')
+
+    def test_density_switch_is_hidden_until_the_script_runs(self):
+        self.assertRegex(self.html(view=[self.dept_a]), r"<div[^>]*data-density-switch[^>]*\bhidden\b")
+
+    def test_grid_markup_has_no_inline_handlers_or_styles(self):
+        html = self.html(edit=[self.dept_a])
+        grid = html[html.index('<table class="grid"'):html.index("</table>")]
+        self.assertNotIn("onclick=", grid)
+        self.assertNotIn(" style=", grid)

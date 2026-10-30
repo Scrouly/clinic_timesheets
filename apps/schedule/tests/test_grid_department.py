@@ -134,3 +134,37 @@ class DepartmentGridTests(ScheduleTestMixin, TestCase):
         self.assertIsNone(row["norm"])
         self.assertIsNone(row["deficit"])
         self.assertFalse(row["has_norm_issue"])
+
+
+class ItemHoursTests(ScheduleTestMixin, TestCase):
+    def setUp(self):
+        self.setUpData()
+        self.schedule = Schedule.objects.create(department=self.dept_a, year=2026, month=1)
+        self.editor = make_access_user("editor", edit=[self.dept_a])
+        self.assignment = self.make_assignment()
+
+    def items(self, day):
+        grid = build_department_grid(self.schedule, self.editor)
+        return grid["rows"][0]["cells"][day - 1]["items"]
+
+    def test_item_has_hours_for_working_shift_only(self):
+        self.make_shift(self.assignment, "8:00", "14:40", day=12)
+        self.make_shift(self.assignment, None, None, day=13, kind=self.vacation)
+        (work,) = self.items(12)
+        (absence,) = self.items(13)
+        self.assertEqual(work["hours"], Decimal("6.67"))
+        self.assertIsNone(absence["hours"])
+
+    def test_item_title_explains_hours_and_cabinet(self):
+        self.make_shift(self.assignment, "9:00", "15:00", day=12)
+        self.make_shift(self.assignment, None, None, day=13, kind=self.vacation)
+        self.assertEqual(self.items(12)[0]["title"], "6 ч, кабинет 301")
+        self.assertEqual(self.items(13)[0]["title"], "Отпуск")
+
+    def test_existing_item_keys_are_unchanged(self):
+        self.make_shift(self.assignment, "9:00", "15:00", day=12)
+        item = self.items(12)[0]
+        self.assertEqual(
+            (item["label"], item["cabinet"], item["working"], item["editable"]), ("09:00–15:00", "301", True, True)
+        )
+        self.assertIn("id", item)
