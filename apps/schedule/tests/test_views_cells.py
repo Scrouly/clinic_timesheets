@@ -201,3 +201,43 @@ class QueryCountTests(CellViewBase, TestCase):
         self.fill(6, first=2)
         many = self.count(lambda: self.post("8-12 302", day="2026-01-07"))
         self.assertEqual(few, many)
+
+
+class CellHtmlTests(CellViewBase, TestCase):
+    def test_response_carries_cell_html(self):
+        data = self.post("9-15 301").json()
+        html = data["cell"]["html"]
+        self.assertRegex(
+            html,
+            r'<span class="cell__hours">6</span>\s*<span class="cell__cab">301</span>\s*'
+            r'<span class="cell__time">09:00–15:00</span>',
+        )
+        self.assertIn(reverse("shift_update", args=[data["cell"]["shift_id"]]), html)
+        self.assertIn("next=" + reverse("schedule_detail", args=[self.schedule.pk]), html)
+
+    def test_items_keep_their_exact_shape(self):
+        data = self.post("9-15 301").json()
+        self.assertEqual(data["cell"]["items"], [{"label": "09:00–15:00", "cabinet": "301"}])
+
+    def test_absence_html_is_one_block_without_hours(self):
+        html = self.post("отп").json()["cell"]["html"]
+        self.assertIn("cell__item--kind", html)
+        self.assertIn("ОТП", html)
+        self.assertNotIn("cell__hours", html)
+        self.assertNotIn("cell__cab", html)
+
+    def test_empty_cell_has_empty_html(self):
+        self.post("9-15 301")
+        self.assertEqual(self.post("").json()["cell"]["html"].strip(), "")
+
+    def test_cabinet_name_is_escaped_in_the_fragment(self):
+        self.cab1.name = "30<b>"
+        self.cab1.save()
+        html = self.post("9-15 30<b>").json()["cell"]["html"]
+        self.assertIn("30&lt;b&gt;", html)
+        self.assertNotIn("<b>", html)
+
+    def test_conflict_response_carries_html_too(self):
+        self.make_shift(self.assignment, "8:00", "12:00")
+        data = self.post("9-15 301", expected="").json()
+        self.assertIn("08:00–12:00", data["cell"]["html"])

@@ -11,6 +11,7 @@ from datetime import time
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count
+from django.template.loader import render_to_string
 
 from .cellinput import CellError, format_cell, parse_cell
 from .checks import HOURS_NORM, check_schedule
@@ -111,8 +112,12 @@ def apply_cell(schedule, row, day, raw, expected=None):
         return format_cell(keep)
 
 
-def cell_payload(schedule, row, day, value):
-    """Состояние ячейки после сохранения: значение, содержимое для показа, вид."""
+def cell_payload(schedule, row, day, value, page_path=None):
+    """Состояние ячейки после сохранения: значение, содержимое для показа, вид.
+
+    html: то же содержимое ячейки, что на странице (общий шаблон _cell_content.html); скрипт подставляет его как есть.
+    page_path: адрес страницы графика для ссылок правки (параметр next).
+    """
     shifts = cell_shifts(schedule, row.assignment_id, day)
     if not shifts:
         kind = "off"
@@ -120,10 +125,12 @@ def cell_payload(schedule, row, day, value):
         kind = "shift"
     else:
         kind = "absence"
+    full_items = [shift_item(s, True) for s in shifts]
     return {
         "value": value,
         "kind": kind,
-        "items": [{"label": i["label"], "cabinet": i["cabinet"]} for i in (shift_item(s, True) for s in shifts)],
+        "items": [{"label": i["label"], "cabinet": i["cabinet"]} for i in full_items],
+        "html": render_to_string("schedule/_cell_content.html", {"items": full_items, "page_path": page_path or ""}),
         "shift_id": shifts[0].id if shifts else None,
     }
 

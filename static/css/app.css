@@ -362,9 +362,11 @@ a { color: var(--brand-text); text-underline-offset: 0.15em; }
 @media (hover: hover) { .grid tbody tr:hover > .grid__who { background: var(--tint); } }
 .grid-summary { margin: 0 0 0.75rem; color: var(--ink-2); font-size: var(--text-base); }
 
-.cell { position: relative; height: 3.1rem; min-width: 5.75rem; padding: 0.15rem 0.1rem; text-align: center; vertical-align: middle; }
-.cell__time { display: block; font-size: var(--text-sm); line-height: 1.25; font-variant-numeric: tabular-nums; }
-.cell__cab { display: block; color: var(--ink-2); font-size: var(--text-xs); line-height: 1.25; }
+/* Ячейка «Подробно»: три строки по 22px сверху вниз: часы (расчёт), кабинет, время */
+.cell { position: relative; height: calc(3 * 1.375rem); min-width: 5.75rem; padding: 0 0.1rem; text-align: center; vertical-align: middle; }
+.cell__hours { display: block; height: 1.375rem; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: var(--text-sm); line-height: 1.375rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cell__cab { display: block; height: 1.375rem; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: var(--text-sm); line-height: 1.375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cell__time { display: block; height: 1.375rem; font-size: var(--text-sm); line-height: 1.375rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cell--vacation { background: var(--st-draft-bg); color: var(--ink-3); }
 .cell--changed { background: var(--st-changed-bg); }
 .cell--changed::after {
@@ -374,8 +376,9 @@ a { color: var(--brand-text); text-underline-offset: 0.15em; }
 /* накладка выделена рамкой и значком, а не только цветом */
 .cell--error { background: var(--st-error-bg); outline: 2px solid var(--st-error-bar); outline-offset: -2px; }
 .cell--error .cell__cab { color: var(--st-error-ink); }
-/* значок внизу слева: сверху у ячейки отделения время, снизу строка кабинета короче и оставляет угол свободным */
-.cell__flag { position: absolute; bottom: 3px; left: 3px; width: 0.9rem; height: 0.9rem; color: var(--st-error-ink); }
+.cell--error .cell__hours { color: var(--st-error-ink); }
+/* значок в верхнем левом углу: строка часов короткая и оставляет угол свободным */
+.cell__flag { position: absolute; top: 4px; left: 3px; width: 0.9rem; height: 0.9rem; color: var(--st-error-ink); }
 
 /* итоги закреплены у правого края: видны при прокрутке по дням */
 .grid__sum {
@@ -444,7 +447,9 @@ a { color: var(--brand-text); text-underline-offset: 0.15em; }
 /* Графики: смены в ячейках, ссылки правки, список ошибок */
 .cell--absence { background: var(--st-draft-bg); color: var(--ink-3); }
 .cell__item { display: block; }
-.cell__item + .cell__item { margin-top: 0.15rem; padding-top: 0.15rem; border-top: 1px dashed var(--line-strong); }
+.cell__item + .cell__item { border-top: 2px solid var(--line-strong); }  /* две смены в день: граница между блоками толще */
+.cell__item--kind .cell__link { justify-content: center; min-height: calc(3 * 1.375rem); }  /* нерабочий вид: одна метка на всю высоту */
+.cell__item--kind .cell__time { height: auto; }
 .cell__link {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 2.5rem; color: inherit; text-decoration: none;
@@ -625,3 +630,22 @@ a { color: var(--brand-text); text-underline-offset: 0.15em; }
 .grid-help__table td { padding: 0.25rem 0; color: var(--ink-2); }
 .grid-help__list { margin: 0 0 1rem; padding-left: 1.1rem; color: var(--ink-2); font-size: var(--text-md); }
 @media print { .grid-bar, .grid-status, .grid-hint, .cell__hint, .cell__editor { display: none !important; } }
+
+/* Режимы сетки отделения: «Подробно» (по умолчанию) и «Компактно» (одна строка, часы и кабинет в подсказке) */
+.density-switch { display: inline-flex; }
+.density-switch[hidden] { display: none; }
+.density-switch__btn { border-radius: 0; }
+.density-switch__btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.density-switch__btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
+.density-switch__btn[aria-pressed="true"] { background: var(--tint); border-color: var(--brand-text); color: var(--brand-strong); font-weight: 600; }
+.grid-wrap[data-density="compact"] .cell { height: 1.75rem; min-width: 5.25rem; }
+.grid-wrap[data-density="compact"] .grid__day { min-width: 5.25rem; }
+.grid-wrap[data-density="compact"] .cell__hours, .grid-wrap[data-density="compact"] .cell__cab { display: none; }
+.grid-wrap[data-density="compact"] .cell__flag { display: none; }
+.grid-wrap[data-density="compact"] .grid__pos { display: none; }  /* профессия и ставка остаются в подсказке имени */
+.grid-wrap[data-density="compact"] .grid__who { padding-top: 0.25rem; padding-bottom: 0.25rem; white-space: nowrap; }
+.grid-wrap[data-density="compact"] .grid__name { display: block; overflow: hidden; text-overflow: ellipsis; }
+.grid-wrap[data-density="compact"] .cell__link, .grid-wrap[data-density="compact"] .cell__item--kind .cell__link { min-height: 1.75rem; }
+.grid-wrap[data-density="compact"] .cell__item + .cell__item { border-top-width: 1px; }
+@media (hover: hover) { .cell--off:hover { background-color: var(--tint); } }
+@media print { .density-switch { display: none !important; } }

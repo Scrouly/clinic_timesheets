@@ -1,0 +1,11 @@
+{% comment %}
+  Содержимое ячейки графика отделения: блоки смен сверху вниз «часы, кабинет, время». Часы это расчёт из
+  времени, а не поле. Нерабочий вид (отпуск, больничный) одним блоком с меткой. Включается в страницу
+  и собирается в ответе cells/ (ключ html), поэтому до и после сохранения ячейка выглядит одинаково.
+{% endcomment %}{% load ui_tags %}{% for item in items %}<span class="cell__item{% if not item.working %} cell__item--kind{% endif %}" title="{{ item.title }}">
+  {% if item.editable %}<a class="cell__link" data-panel-link href="{% url 'shift_update' item.id %}?next={{ page_path|urlencode }}">{% endif %}
+  {% if item.working %}<span class="cell__hours">{{ item.hours|hours }}</span>
+  <span class="cell__cab">{{ item.cabinet }}</span>
+  {% endif %}<span class="cell__time">{{ item.label }}</span>
+  {% if item.editable %}</a>{% endif %}
+</span>{% endfor %}

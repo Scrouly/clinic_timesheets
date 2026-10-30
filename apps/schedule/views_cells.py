@@ -63,15 +63,16 @@ def cell_apply(request, pk):
         pk=row_id,
         schedule=schedule,
     )
+    page_path = reverse("schedule_detail", args=[schedule.pk])
     try:
         value = apply_cell(schedule, row, day, raw, expected)
     except CellRejected as error:
         return JsonResponse({"ok": False, "error": str(error)}, status=422)
     except CellConflict as conflict:
-        current = cell_payload(schedule, row, day, conflict.current)
+        current = cell_payload(schedule, row, day, conflict.current, page_path)
         return JsonResponse({"ok": False, "conflict": True, "current": conflict.current, "cell": current}, status=409)
 
-    cell = cell_payload(schedule, row, day, value)
+    cell = cell_payload(schedule, row, day, value, page_path)
     totals = row_totals(schedule, row)
     deviation = None if totals["deviation"] is None else float(totals["deviation"])
     cell["panel_url"] = (
